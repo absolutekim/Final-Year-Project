@@ -95,8 +95,6 @@ export default {
       } else {
         this.error = '';
       }
-      
-      console.log('Tag selection changed:', newSelectedTags);
     },
     
     /**
@@ -108,7 +106,6 @@ export default {
         const response = await axios.get('/api/accounts/tags/');
         this.tags = response.data.tags;
       } catch (error) {
-        console.error('Failed to fetch tag list:', error);
         this.error = 'Failed to load available tags.';
       } finally {
         this.isLoading = false;

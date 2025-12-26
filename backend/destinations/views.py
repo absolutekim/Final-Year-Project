@@ -24,6 +24,8 @@ import random  # Adding random module for randomness
 from django.db.models import Count
 import math
 
+# This class has created at earlier phase 
+# but now it's not being used and replaced with others. but to avoid corruption, it's being kept.
 class LocationListView(generics.ListAPIView):
     """
     API view for listing all travel destinations.
@@ -35,6 +37,8 @@ class LocationListView(generics.ListAPIView):
     serializer_class = LocationSerializer
     permission_classes = [AllowAny]  # Anyone can view this
 
+# This class has created at earlier phase 
+# but now it's not being used and replaced with others. but to avoid corruption, it's being kept.
 class LocationDetailView(generics.RetrieveAPIView):
     """
     API view for retrieving detailed information about a specific destination.
@@ -391,7 +395,13 @@ class ReviewViewSet(viewsets.ModelViewSet):
         print(f"Location ID: {location_id}, Rating: {rating}, Content: {content}")
         
         if not location_id:
-            return Response({"error": "location_id is required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"location_id": ["This field is required."]}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # location_id is an integer or not  
+            location_id = int(location_id)
+        except (ValueError, TypeError):
+            return Response({"location_id": ["Enter a valid integer."]}, status=status.HTTP_400_BAD_REQUEST)
         
         if not rating or not isinstance(rating, (int, float)) or rating < 1 or rating > 5:
             return Response({"error": "rating must be a number between 1 and 5."}, status=status.HTTP_400_BAD_REQUEST)
@@ -412,41 +422,53 @@ class ReviewViewSet(viewsets.ModelViewSet):
             
             # Analyze review text with improved analysis
             from .review_utils import analyze_review
-            analysis_result = analyze_review(content, rating=float(rating))
-            
-            # Log meaning units extraction if available
-            if 'meaning_units' in analysis_result:
-                meaning_units = analysis_result['meaning_units']
-                print(f"Extracted meaning units: {meaning_units}")
-                
-                # Log special patterns like "large but nothing"
-                if 'negation_concepts' in meaning_units:
-                    neg_concepts = meaning_units['negation_concepts']
-                    if neg_concepts:
-                        print(f"Extracted negation concepts: {neg_concepts}")
-            
-            # Create review with meaning units if available
-            review_data = {
-                'user': request.user,
-                'location': location,
-                'content': content,
-                'rating': rating,
-                'sentiment': analysis_result['sentiment'],
-                'keywords': {
-                    'positive_keywords': analysis_result['positive_keywords'],
-                    'negative_keywords': analysis_result['negative_keywords']
+            try:
+                analysis_result = analyze_review(content, rating=float(rating))
+            except Exception as e:
+                print(f"Analysis error occurred: {str(e)}")
+                # Use default values if analysis fails
+                analysis_result = {
+                    'sentiment': 'POSITIVE' if rating >= 4 else ('NEGATIVE' if rating <= 2 else 'NEUTRAL'),
+                    'sentiment_score': 0.5,
+                    'positive_keywords': [],
+                    'negative_keywords': [],
+                    'meaning_units': {
+                        'phrases': [],
+                        'adj_noun_pairs': [],
+                        'negation_concepts': [],
+                        'positive_units': [],
+                        'negative_units': []
+                    }
                 }
+            
+            # Prepare keyword data in a new way
+            # 1. Use only basic data that can be JSON serialized
+            # 2. Do not store dictionary strings, let the model serialize
+            keywords_data = {
+                'positive': analysis_result.get('positive_keywords', []),
+                'negative': analysis_result.get('negative_keywords', []),
+                # Meaning units are simplified
+                'phrases': analysis_result.get('meaning_units', {}).get('phrases', []),
+                'adj_noun_pairs': analysis_result.get('meaning_units', {}).get('adj_noun_pairs', []),
+                'sentiment': analysis_result.get('sentiment', 'NEUTRAL')
             }
             
-            # Add meaning units if available
-            if 'meaning_units' in analysis_result:
-                review_data['keywords']['meaning_units'] = analysis_result['meaning_units']
+            # Instead of directly creating the model, use the serializer
+            review_data = {
+                'user': request.user.id,
+                'location_id': location.id,
+                'content': content,
+                'rating': rating,
+                'sentiment': analysis_result.get('sentiment', 'NEUTRAL'),
+                'keywords': keywords_data  # simple structure
+            }
             
-            review = Review(**review_data)
-            review.save()
+            serializer = self.get_serializer(data=review_data)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             
-            # Return the created review
-            serializer = self.get_serializer(review)
+            # save data through serializer
+            serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
             
         except Exception as e:
@@ -533,18 +555,13 @@ def recommend_destinations(request):
             tag_groups = {}  # Group destinations by tag
             
             for tag in selected_tags:
-                # Search for destinations matching the tag (exact match or inclusion)
-                # 1. Exact category match
-                exact_matches = Location.objects.filter(category=tag)
-                
-                # 2. Include in subcategories (JSON field search)
-                # Filter in Python due to SQLite JSON field search limitations
+                # Get all destinations
                 all_locations = Location.objects.all()
-                subcategory_matches = []
+                tag_locations = []
                 
                 for loc in all_locations:
                     if loc.subcategories:
-                        # Convert string to list if needed
+                        # If it's a string, convert to list
                         subcats = loc.subcategories
                         if isinstance(subcats, str):
                             try:
@@ -553,37 +570,13 @@ def recommend_destinations(request):
                             except:
                                 subcats = [subcats]
                         
-                        # Convert to list if not a list
+                        # If it's not a list, convert to list
                         if not isinstance(subcats, list):
                             subcats = [subcats]
                         
-                        # Check if tag is included in subcategories
-                        if any(tag.lower() in subcat.lower() for subcat in subcats if subcat):
-                            subcategory_matches.append(loc)
-                
-                # 3. Include in subtypes (JSON field search)
-                subtype_matches = []
-                for loc in all_locations:
-                    if loc.subtypes:
-                        # Convert string to list if needed
-                        subtypes = loc.subtypes
-                        if isinstance(subtypes, str):
-                            try:
-                                import json
-                                subtypes = json.loads(subtypes)
-                            except:
-                                subtypes = [subtypes]
-                        
-                        # Convert to list if not a list
-                        if not isinstance(subtypes, list):
-                            subtypes = [subtypes]
-                        
-                        # Check if tag is included in subtypes
-                        if any(tag.lower() in subtype.lower() for subtype in subtypes if subtype):
-                            subtype_matches.append(loc)
-                
-                # Combine all results
-                tag_locations = list(exact_matches) + subcategory_matches + subtype_matches
+                        # Check if subcategories[0] exactly matches the tag
+                        if subcats and len(subcats) > 0 and subcats[0] == tag:
+                            tag_locations.append(loc)
                 
                 # Remove duplicates
                 tag_locations = list({loc.id: loc for loc in tag_locations}.values())
@@ -600,6 +593,10 @@ def recommend_destinations(request):
                     
                     # Add to overall results list
                     tag_based_results.extend(tag_group_results)
+                    
+                    print(f"Found {len(tag_locations)} destinations related to tag '{tag}'")
+                else:
+                    print(f"No destinations found matching tag '{tag}'")
             
             # Remove duplicates
             seen_ids = set()
@@ -668,6 +665,9 @@ def recommend_destinations(request):
         high_rated_location_ids = []  # IDs of destinations rated 4-5
         low_rated_location_ids = []   # IDs of destinations rated 1-2
         
+        # Improved country extraction: Track countries mentioned in reviews
+        review_countries = Counter()
+        
         for review in reviews:
             # Extract keywords with context
             if hasattr(review, 'keywords'):
@@ -685,6 +685,22 @@ def recommend_destinations(request):
                         review_keywords_positive.extend(pos_keywords)
                     if neg_keywords:
                         review_keywords_negative.extend(neg_keywords)
+                    
+                    # Improved country extraction: Find country names in keywords
+                    all_keywords = pos_keywords + neg_keywords
+                    countries = extract_countries_from_keywords(all_keywords)
+                    for country in countries:
+                        review_countries[country] += 1
+            
+            # Improved country extraction: Extract country names directly from review content
+            if hasattr(review, 'content') and review.content:
+                content_countries = extract_countries_from_text(review.content)
+                for country in content_countries:
+                    review_countries[country] += 2  # Higher weight for explicitly mentioned countries
+            
+            # Improved country extraction: Add the country of the reviewed location
+            if review.location.country:
+                review_countries[review.location.country] += 3  # Highest weight for the country of the reviewed location
             
             # Classify by rating
             if review.rating >= 4:
@@ -721,7 +737,7 @@ def recommend_destinations(request):
             print(f"Top positive keywords: {top_pos_keywords}")
             print(f"Top negative keywords to avoid: {top_neg_keywords}")
             
-            # 부사 필터링 로그 메시지 추가
+            # add log message for adverb filtering
             common_adverbs = {
                 'actually', 'quite', 'rather', 'really', 'very', 'extremely', 
                 'supposedly', 'basically', 'literally', 'definitely', 'certainly',
@@ -869,8 +885,29 @@ def recommend_destinations(request):
             activity_based_results.extend(subtype_results)
         
         # 3.4.4 Country-based search
+        # Improve country selection logic: use both liked and review information
+        combined_countries = Counter()
+        
+        # countries from liked locations
         if liked_countries:
-            top_countries = [country for country, _ in liked_countries.most_common(3)]
+            for country, count in liked_countries.items():
+                combined_countries[country] += count
+                
+        # countries from reviews
+        if review_countries:
+            for country, count in review_countries.items():
+                combined_countries[country] += count
+                
+        # ensure at least one country
+        if not combined_countries and recently_viewed:
+            # countries from recently viewed locations
+            for item in recently_viewed:
+                if item.get('country'):
+                    combined_countries[item.get('country')] += 1
+        
+        if combined_countries:
+            # select top 5 countries (increased from 3 to 5)
+            top_countries = [country for country, _ in combined_countries.most_common(5)]
             print(f"Top countries: {top_countries}")
             
             country_locations = Location.objects.filter(country__in=top_countries)
@@ -887,39 +924,46 @@ def recommend_destinations(request):
                 
             country_locations = country_locations.exclude(id__in=liked_ids + previous_results_ids)
             
-            # Convert to list and shuffle randomly
-            country_locations_list = list(country_locations)
-            random.shuffle(country_locations_list)
+            # improve weight system: separate country results
+            country_results_by_country = {}
             
-            print(f"Number of country-based recommendation destinations: {len(country_locations_list)}")
-            
-            # Select top results (varied similarity scores)
-            country_results = []
-            for i, loc in enumerate(country_locations_list[:limit]):
-                # Similarity score - without randomness
-                base_similarity = 0.65 + (i % 4) * 0.05
-                similarity = base_similarity
+            for country in top_countries:
+                # filter locations for specific country
+                country_specific_locations = country_locations.filter(country=country)
+                country_specific_list = list(country_specific_locations)
                 
-                country_results.append((loc, similarity))
-                print(f"Country-based recommendation: {loc.name}, similarity: {similarity:.2f}")
+                # process only if there are results
+                if country_specific_list:
+                    # shuffle to ensure diversity
+                    random.shuffle(country_specific_list)
+                    
+                    # save country results (max 5 locations)
+                    country_results_by_country[country] = []
+                    
+                    for i, loc in enumerate(country_specific_list[:5]):
+                        # calculate weight: adjust base score based on mention frequency in reviews/likes
+                        base_weight = 0.65
+                        mention_bonus = min(0.3, combined_countries[country] * 0.05)  # bonus based on mention frequency
+                        final_similarity = base_weight + mention_bonus + (i % 3) * 0.03  # add slight variation
+                        
+                        country_results_by_country[country].append((loc, final_similarity))
+            
+            # merge country results (add top items from each country alternately)
+            country_results = []
+            max_per_country = max(len(results) for country, results in country_results_by_country.items()) if country_results_by_country else 0
+            
+            for i in range(max_per_country):
+                for country in top_countries:
+                    if country in country_results_by_country and i < len(country_results_by_country[country]):
+                        country_results.append(country_results_by_country[country][i])
+            
+            # limit results
+            country_results = country_results[:limit]
+            
+            for location, similarity in country_results:
+                print(f"Country-based recommendation: {location.name}, similarity: {similarity:.2f}")
             
             activity_based_results.extend(country_results)
-        
-        # Remove duplicates and sort
-        seen_ids = set()
-        unique_activity_results = []
-        
-        for loc, score in activity_based_results:
-            if loc.id not in seen_ids:
-                seen_ids.add(loc.id)
-                unique_activity_results.append((loc, score))
-        
-        # Sort by score
-        unique_activity_results.sort(key=lambda x: x[1], reverse=True)
-        
-        # Save activity-based recommendation results
-        for location, similarity in unique_activity_results[:limit]:
-            results.append((location, similarity))
     
     # 5. Tag-based recommendations (from existing tag selection) - supplementary for users with activity
     if tag_weight > 0.1 and len(results) < limit and total_activities > 0:
@@ -936,19 +980,41 @@ def recommend_destinations(request):
             tag_based_results = []
             
             for tag in selected_tags:
-                # Search for destinations with this tag
-                tag_locations = Location.objects.filter(category=tag)
+                # bring all destinations
+                all_locations = Location.objects.all()
+                tag_locations = []
+                
+                for loc in all_locations:
+                    if loc.subcategories:
+                        # If it's a string, convert to list
+                        subcats = loc.subcategories
+                        if isinstance(subcats, str):
+                            try:
+                                import json
+                                subcats = json.loads(subcats)
+                            except:
+                                subcats = [subcats]
+                        
+                        # If it's not a list, convert to list
+                        if not isinstance(subcats, list):
+                            subcats = [subcats]
+                        
+                        # Check if subcategories[0] exactly matches the tag
+                        if subcats and len(subcats) > 0 and subcats[0] == tag:
+                            tag_locations.append(loc)
                 
                 # Exclude already liked destinations
                 liked_ids = [like.location.id for like in likes]
-                tag_locations = tag_locations.exclude(id__in=liked_ids)
+                tag_locations = [loc for loc in tag_locations if loc.id not in liked_ids]
                 
                 # Add results (top 5 only)
                 for loc in tag_locations[:5]:
                     tag_based_results.append((loc, 0.6))  # Lower similarity score for tag-based
+                
+                print(f"Found {len(tag_locations)} destinations related to tag '{tag}'")
             
             # Remove duplicates
-            seen_ids = set(item["id"] for item in results)
+            seen_ids = set(item.get("id") if isinstance(item, dict) else item[0].id for item in results)
             unique_tag_results = []
             
             for loc, score in tag_based_results:
@@ -1459,3 +1525,90 @@ def nearby_locations(request):
     nearby_locations = nearby_locations[:limit]
     
     return Response(nearby_locations)
+
+# add new utility function for extracting countries from keywords
+def extract_countries_from_keywords(keywords):
+    """
+    Extract countries from keyword list.
+    """
+    # List of common country names (stored in lowercase)
+    common_countries = {
+        'vietnam', 'thailand', 'japan', 'korea', 'china', 'malaysia', 'indonesia', 
+        'singapore', 'philippines', 'australia', 'new zealand', 'usa', 'america', 
+        'canada', 'mexico', 'brazil', 'peru', 'argentina', 'chile', 'uk', 'england', 
+        'france', 'italy', 'spain', 'germany', 'netherlands', 'turkey', 'russia', 
+        'india', 'egypt', 'morocco', 'south africa', 'greece', 'switzerland'
+    }
+    
+    # Process country name variations
+    country_aliases = {
+        'american': 'usa',
+        'british': 'uk',
+        'english': 'uk',
+        'french': 'france',
+        'italian': 'italy',
+        'spanish': 'spain',
+        'german': 'germany',
+        'dutch': 'netherlands',
+        'turkish': 'turkey',
+        'russian': 'russia',
+        'indian': 'india',
+        'egyptian': 'egypt',
+        'thai': 'thailand',
+        'vietnamese': 'vietnam',
+        'japanese': 'japan',
+        'south_korean': 'south_korea',
+        'chinese': 'china',
+        'malaysian': 'malaysia',
+        'indonesian': 'indonesia'
+    }
+    
+    found_countries = []
+    
+    for keyword in keywords:
+        keyword_lower = keyword.lower()
+        
+        # Direct match
+        if keyword_lower in common_countries:
+            found_countries.append(keyword_lower)
+        
+        # Alias match
+        elif keyword_lower in country_aliases:
+            found_countries.append(country_aliases[keyword_lower])
+    
+    return found_countries
+
+def extract_countries_from_text(text):
+    """
+    Extract countries from text.
+    """
+    # Include country name variations
+    countries_with_variants = {
+        'vietnam': ['vietnam', 'vietnamese', 'hanoi', 'ho chi minh'],
+        'thailand': ['thailand', 'thai', 'bangkok', 'phuket'],
+        'japan': ['japan', 'japanese', 'tokyo', 'kyoto', 'osaka'],
+        'south_korea': ['south_korea', 'south_korean', 'seoul', 'busan'],
+        'china': ['china', 'chinese', 'beijing', 'shanghai'],
+        'malaysia': ['malaysia', 'malaysian', 'kuala lumpur', 'penang'],
+        'indonesia': ['indonesia', 'indonesian', 'bali', 'jakarta'],
+        'singapore': ['singapore', 'singaporean'],
+        'philippines': ['philippines', 'filipino', 'manila', 'cebu'],
+        'australia': ['australia', 'australian', 'sydney', 'melbourne'],
+        'usa': ['usa', 'america', 'american', 'united states', 'new york', 'los angeles'],
+        'uk': ['uk', 'britain', 'british', 'england', 'london'],
+        'france': ['france', 'french', 'paris', 'nice'],
+        'italy': ['italy', 'italian', 'rome', 'venice', 'milan'],
+        'spain': ['spain', 'spanish', 'madrid', 'barcelona'],
+        'germany': ['germany', 'german', 'berlin', 'munich']
+    }
+    
+    found_countries = []
+    text_lower = text.lower()
+    
+    for country, variants in countries_with_variants.items():
+        for variant in variants:
+            if variant in text_lower:
+                found_countries.append(country)
+                break  # Add only once if a country variant is found
+    
+    return found_countries

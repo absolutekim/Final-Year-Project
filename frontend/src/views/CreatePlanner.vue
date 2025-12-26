@@ -267,7 +267,6 @@ export default {
         
         loadingPlanners.value = false;
       } catch (error) {
-        console.error('Failed to load planner list:', error);
         loadingPlanners.value = false;
       }
     };
@@ -294,7 +293,7 @@ export default {
           url.searchParams.delete('destination');
           window.history.replaceState({}, '', url);
         } catch (error) {
-          console.error('Failed to load destination information:', error);
+          // Failed to load destination information
         }
       }
     };
@@ -312,31 +311,26 @@ export default {
       
       try {
         isLoading.value = true;
-        console.log(`Search query: "${searchQuery.value}", result limit: 20 items`);
         const response = await axios.get(`/api/destinations/search/nlp/?query=${encodeURIComponent(searchQuery.value)}&limit=20`);
         
         if (response.data && response.data.results) {
           destinations.value = response.data.results;
-          console.log(`Search results: received ${destinations.value.length} items`);
           
           // Retry if results are fewer than expected (less than 10) but there are more available
           if (destinations.value.length < 10 && response.data.results_count > 10) {
-            console.log('Search results fewer than expected. Retrying...');
             setTimeout(async () => {
               try {
                 const retryResponse = await axios.get(`/api/destinations/search/nlp/?query=${encodeURIComponent(searchQuery.value)}&limit=20&retry=true`);
                 if (retryResponse.data && retryResponse.data.results && retryResponse.data.results.length > destinations.value.length) {
                   destinations.value = retryResponse.data.results;
-                  console.log(`Retry search results: received ${destinations.value.length} items`);
                 }
               } catch (retryError) {
-                console.error('Error during retry search:', retryError);
+                // Error during retry search
               }
             }, 500);
           }
         } else {
           destinations.value = [];
-          console.log('No search results');
         }
         
         // Extract country list for filtering
@@ -348,7 +342,6 @@ export default {
         
         isLoading.value = false;
       } catch (error) {
-        console.error('Failed to load destinations:', error);
         isLoading.value = false;
       }
     };
@@ -386,10 +379,13 @@ export default {
           description: newPlanner.value.description
         });
         
+        // Add newly created planner to userPlanners list
+        userPlanners.value.unshift(response.data);
+        
+        // Set newly created planner as current planner
         currentPlanner.value = response.data;
         newPlanner.value = { title: '', description: '' };
       } catch (error) {
-        console.error('Failed to create planner:', error);
         alert('Failed to create planner. Please try again.');
       }
     };
@@ -435,7 +431,6 @@ export default {
         plannerItems.value.push(response.data);
         updateOriginalOrder();
       } catch (error) {
-        console.error('Failed to add destination:', error);
         alert('Failed to add destination. Please try again.');
       }
     };
@@ -456,7 +451,6 @@ export default {
         
         updateOriginalOrder();
       } catch (error) {
-        console.error('Failed to remove destination:', error);
         alert('Failed to remove destination. Please try again.');
       }
     };
@@ -474,7 +468,6 @@ export default {
         }
         
         // Sync with server data before saving
-        console.log('Syncing with latest data from server...');
         await fetchPlannerItems();
         
         // Create item data to save
@@ -482,8 +475,6 @@ export default {
           id: item.id,
           order: index
         }));
-        
-        console.log('Data to save:', { items });
         
         await axios.post('/api/planner/planner-items/reorder/', {
           items: items
@@ -496,11 +487,7 @@ export default {
         
         alert('Planner order has been saved.');
       } catch (error) {
-        console.error('Failed to save planner order:', error);
         if (error.response) {
-          console.error('Response data:', error.response.data);
-          console.error('Status code:', error.response.status);
-          
           // If items not found, reload planner items
           if (error.response.status === 400 && error.response.data.detail === 'Some items could not be found.') {
             alert('Some items could not be found. Reloading planner items.');
@@ -520,28 +507,12 @@ export default {
       if (!currentPlanner.value) return;
       
       try {
-        console.log(`Loading items for planner ID ${currentPlanner.value.id}...`);
         const response = await axios.get(`/api/planner/planners/${currentPlanner.value.id}/items/`);
-        
-        // Log response data
-        console.log('Planner items received from server:', response.data);
-        
-        // Compare item ID lists
-        const oldIds = plannerItems.value.map(item => item.id);
-        const newIds = response.data.map(item => item.id);
-        
-        console.log('Existing item IDs:', oldIds);
-        console.log('New item IDs:', newIds);
         
         // Update data
         plannerItems.value = response.data;
         updateOriginalOrder();
       } catch (error) {
-        console.error('Failed to load planner items:', error);
-        if (error.response) {
-          console.error('Response data:', error.response.data);
-          console.error('Status code:', error.response.status);
-        }
         alert('Failed to load planner items. Please refresh the page.');
       }
     };
@@ -612,9 +583,6 @@ export default {
         item.order = index;
       });
       
-      console.log('Item order changed via drag and drop.');
-      console.log('New order:', plannerItems.value.map(item => item.id));
-      
       // Don't update originalOrder to compare with hasOrderChanged
       // This will return true to show that the save button is active
       
@@ -648,7 +616,6 @@ export default {
           await fetchUserPlanners();
           alert('Planner has been successfully deleted.');
         } catch (error) {
-          console.error('Failed to delete planner:', error);
           alert('Failed to delete planner. Please try again.');
         }
       }

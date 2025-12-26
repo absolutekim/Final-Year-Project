@@ -20,7 +20,7 @@
           <select id="sort-select" v-model="sortOption" @change="handleSort" class="sort-select">
             <option value="name">Alphabet</option>
             <option value="rating">Score</option>
-            <option value="popularity">Popularity</option>
+            <option value="popularity">Likes Count</option>
             <option value="recent">Newest</option>
           </select>
         </div>
@@ -99,6 +99,9 @@
               <span v-if="destination.category" class="category-tag">{{ destination.category }}</span>
               <span v-if="destination.average_rating" class="rating">
                 <i class="fas fa-star"></i> {{ destination.average_rating.toFixed(1) }}
+              </span>
+              <span v-if="destination.likes_count !== undefined" class="likes-count">
+                <i class="fas fa-heart"></i> {{ destination.likes_count }}
               </span>
             </div>
             
@@ -546,17 +549,27 @@ export default {
 </script>
 
 <style scoped>
+.destination-list-container {
+  background-image: url('@/assets/destback.jpg');
+  background-size: cover;
+  background-attachment: fixed;
+  background-position: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
 /* Main container for the destination list page */
 .destination-list-container {
-  max-width: 1200px;
-  margin: 0 auto;
+  max-width: 100%; 
+  width: 100%;
+  margin: 0;
   padding: 2rem;
 }
 
 /* Search and filter section at the top of the page */
 .search-section {
   margin-bottom: 2rem;
-  background-color: #f8f9fa;
+  background-color: rgba(248, 249, 250, 0.9);
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
@@ -726,14 +739,14 @@ export default {
 /* Grid layout for destination cards */
 .destinations-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 1.5rem;
   margin-bottom: 2rem;
 }
 
 /* Individual destination card styling */
 .destination-card {
-  background-color: white;
+  background-color: rgba(255, 255, 255, 0.9);  
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -924,7 +937,26 @@ export default {
 }
 
 /* Responsive styling for mobile devices */
+@media (max-width: 1200px) {
+  /* For large tablets/small desktops, show 3 cards per row */
+  .destinations-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  /* For tablets, show 2 cards per row */
+  .destinations-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
+  /* For mobile, show 1 card per row */
+  .destinations-grid {
+    grid-template-columns: 1fr;
+  }
+  
   /* Adjust container padding for smaller screens */
   .destination-list-container {
     padding: 1rem;
@@ -952,10 +984,21 @@ export default {
   .search-options {
     flex-direction: column;
   }
-  
-  /* Adjust grid layout for smaller screens */
-  .destinations-grid {
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  }
+}
+
+.likes-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background-color: rgba(255, 0, 0, 0.1);
+  color: #e91e63;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  margin-left: 4px;
+}
+
+.likes-count i {
+  font-size: 0.85rem;
 }
 </style> 

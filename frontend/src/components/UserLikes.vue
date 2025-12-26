@@ -113,7 +113,6 @@ export default {
         this.likes = response.data.results;
         this.hasMore = this.likes.length < response.data.count;
       } catch (error) {
-        console.error('Error loading liked destinations:', error);
         this.toast.error('Failed to load your liked destinations.');
       } finally {
         this.isLoading = false;
@@ -141,7 +140,6 @@ export default {
         this.likes = [...this.likes, ...response.data.results];
         this.hasMore = this.likes.length < response.data.count;
       } catch (error) {
-        console.error('Error loading additional liked destinations:', error);
         this.toast.error('Failed to load more liked destinations.');
       } finally {
         this.isLoadingMore = false;
@@ -167,7 +165,6 @@ export default {
         this.likes = this.likes.filter(like => like.id !== likeId);
         this.toast.success('Destination removed from your likes.');
       } catch (error) {
-        console.error('Error unliking destination:', error);
         this.toast.error('Failed to unlike destination.');
       }
     },
@@ -191,7 +188,7 @@ export default {
      */
     formatDate(dateString) {
       const date = new Date(dateString);
-      return date.toLocaleDateString('ko-KR', {
+      return date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
         day: 'numeric'

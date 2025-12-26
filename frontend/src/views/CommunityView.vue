@@ -30,7 +30,7 @@
                     <v-col cols="9" sm="10">
                       <v-text-field
                         v-model="searchQuery"
-                        placeholder="Search by title or author..."
+                        :placeholder="searchPlaceholder"
                         hide-details
                         single-line
                         filled
@@ -56,6 +56,23 @@
                       </v-btn>
                     </v-col>
                   </v-row>
+                  
+                  <!-- Search options -->
+                  <v-row no-gutters class="mt-2">
+                    <v-col cols="12">
+                      <v-radio-group 
+                        v-model="searchType" 
+                        row 
+                        dense 
+                        hide-details 
+                        class="mt-0 pt-0"
+                      >
+                        <v-radio label="All" value="all"></v-radio>
+                        <v-radio label="Post Title" value="title"></v-radio>
+                        <v-radio label="Author" value="author"></v-radio>
+                      </v-radio-group>
+                    </v-col>
+                  </v-row>
                 </v-card>
               </v-col>
             </v-row>
@@ -63,7 +80,7 @@
             <!-- Search results info -->
             <div v-if="isSearchActive" class="my-3 d-flex align-center search-info">
               <div class="text-subtitle-1">
-                Search results for: <span class="font-weight-bold">{{ searchQuery }}</span>
+                {{ searchResultText }}
                 <span class="ml-2 text-caption">({{ posts.length }} results found)</span>
               </div>
               <v-spacer></v-spacer>
@@ -156,7 +173,8 @@ export default {
       currentPage: 1,
       itemsPerPage: 10,
       searchQuery: '',
-      isSearchActive: false
+      isSearchActive: false,
+      searchType: 'all'
     };
   },
   computed: {
@@ -173,6 +191,42 @@ export default {
       const start = (this.currentPage - 1) * this.itemsPerPage;
       const end = start + this.itemsPerPage;
       return this.posts.slice(start, end);
+    },
+    /**
+     * Get search placeholder text based on search type
+     */
+    searchPlaceholder() {
+      switch(this.searchType) {
+        case 'title':
+          return 'Search by post title...';
+        case 'author':
+          return 'Search by author name...';
+        default:
+          return 'Search by title or author...';
+      }
+    },
+    /**
+     * Get search result text based on search type
+     */
+    searchResultText() {
+      const baseText = 'Search results';
+      
+      switch(this.searchType) {
+        case 'title':
+          return `${baseText} for title: <span class="font-weight-bold">${this.searchQuery}</span>`;
+        case 'author':
+          return `${baseText} for author: <span class="font-weight-bold">${this.searchQuery}</span>`;
+        default:
+          return `${baseText} for: <span class="font-weight-bold">${this.searchQuery}</span>`;
+      }
+    }
+  },
+  watch: {
+    // Re-search when search type changes
+    searchType() {
+      if (this.isSearchActive && this.searchQuery.trim()) {
+        this.searchPosts();
+      }
     }
   },
   async created() {
@@ -189,7 +243,7 @@ export default {
         this.posts = response.data;
         this.isSearchActive = false;
       } catch (error) {
-        console.error("Error loading posts:", error);
+        // Error handled silently
       } finally {
         this.loading = false;
       }
@@ -208,13 +262,16 @@ export default {
       
       try {
         const response = await axios.get('/api/community/posts/search/', {
-          params: { query: this.searchQuery.trim() }
+          params: { 
+            query: this.searchQuery.trim(),
+            search_type: this.searchType
+          }
         });
         
         this.posts = response.data;
         this.isSearchActive = true;
       } catch (error) {
-        console.error("Error searching posts:", error);
+        // Error handled silently
       } finally {
         this.searching = false;
       }

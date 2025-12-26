@@ -525,7 +525,7 @@ class NLPProcessor:
     def search_destinations(self, query, destinations, top_n=10):
         """
         Find destinations most similar to the query.
-        Performs semantic search with sentiment understanding and keyword matching.
+        Performs semantic search with keyword matching.
         
         Parameters:
             query: Search query text
@@ -538,6 +538,7 @@ class NLPProcessor:
         try:
             start_time = time.time()
             print(f"NLP search query: {query}")
+            print(f"NLP_ADVANCED status: {NLP_ADVANCED}")
             
             # Create cache key (query + number of results)
             cache_key = f"{query}:{top_n}"
@@ -550,10 +551,6 @@ class NLPProcessor:
             query_words_count = len(query.split())
             if query_words_count < 3:
                 print(f"Short query detected ({query_words_count} words)")
-            
-            # Analyze query sentiment
-            sentiment, confidence = self.analyze_sentiment(query)
-            print(f"Query sentiment analysis result: {sentiment}")
             
             # Preprocess query
             query_words = set(self.preprocess_text(query))
@@ -650,20 +647,6 @@ class NLPProcessor:
                     elif any(word in dest_text.lower() for word in query_words):
                         similarity *= 1.3  # 30% increased weight
                 
-                # Apply sentiment-based weights
-                if sentiment == "POSITIVE":
-                    # Weight positive queries toward "Fun & Games", "Entertainment" categories
-                    positive_categories = ["Fun & Games", "Entertainment", "Spas & Wellness", "Food & Drink"]
-                    for cat in positive_categories:
-                        if cat in dest_text:
-                            similarity *= 1.2  # 20% increased weight
-                elif sentiment == "NEGATIVE":
-                    # Weight negative queries toward "Nature & Parks", "Museums" quieter categories
-                    negative_categories = ["Nature & Parks", "Museums", "Sights & Landmarks"]
-                    for cat in negative_categories:
-                        if cat in dest_text:
-                            similarity *= 1.2  # 20% increased weight
-                
                 # Apply weight if query keywords are directly in the title
                 if any(word in dest.name.lower() for word in query_words):
                     similarity *= 1.5  # 50% increased weight
@@ -704,6 +687,7 @@ class NLPProcessor:
         except Exception as e:
             print(f"Error during destination search: {str(e)}")
             # Fall back to keyword search on error
+            print("Falling back to keyword search due to error in semantic search")
             return self.keyword_search(query, destinations, top_n)
     
     def keyword_search(self, query, destinations, top_n=10):
@@ -721,6 +705,7 @@ class NLPProcessor:
         """
         try:
             start_time = time.time()
+            print("Using basic keyword-based search")
             query_lower = query.lower()
             query_words = set(query_lower.split())
             

@@ -5,10 +5,21 @@
     <!-- Post edit form with title and content fields -->
     <form @submit.prevent="updatePost">
       <label>Title:</label>
-      <input type="text" v-model="title" required>
+      <input type="text" v-model="title" required maxlength="255">
+      <div class="character-counter">
+        {{ title.length }} / 255 characters
+      </div>
+      
       <label>Content:</label>
-      <textarea v-model="content" required></textarea>
-      <button type="submit">Upload Post</button>
+      <textarea v-model="content" required maxlength="3000"></textarea>
+      <div class="character-counter">
+        {{ content.length }} / 3000 characters
+      </div>
+      
+      <div class="button-group">
+        <button type="submit" class="submit-button">Update</button>
+        <button type="button" class="cancel-button" @click="cancel">Cancel</button>
+      </div>
     </form>
   </div>
 </template>
@@ -34,7 +45,7 @@ export default {
    */
   async created() {
     const postId = this.$route.params.id;
-    const response = await axios.get(`/api/posts/${postId}/`);
+    const response = await axios.get(`/api/community/posts/${postId}/`);
     this.title = response.data.title;
     this.content = response.data.content;
   },
@@ -45,10 +56,17 @@ export default {
      */
     async updatePost() {
       if (!this.title.trim() || !this.content.trim()) return;
-      await axios.put(`/api/posts/${this.$route.params.id}/`, {
+      await axios.put(`/api/community/posts/${this.$route.params.id}/`, {
         title: this.title,
         content: this.content
       });
+      this.$router.push(`/community/${this.$route.params.id}`);
+    },
+    
+    /**
+     * Cancel edit and return to post detail page
+     */
+    cancel() {
       this.$router.push(`/community/${this.$route.params.id}`);
     }
   }
@@ -86,7 +104,7 @@ label {
 /* Input field styling */
 input[type="text"] {
   padding: 0.75rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 1rem;
@@ -95,7 +113,7 @@ input[type="text"] {
 /* Textarea styling */
 textarea {
   padding: 0.75rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
   border: 1px solid #ddd;
   border-radius: 4px;
   min-height: 200px;
@@ -103,8 +121,22 @@ textarea {
   resize: vertical;
 }
 
+/* Character counter styling */
+.character-counter {
+  font-size: 12px;
+  color: #718096;
+  text-align: right;
+  margin-bottom: 1.5rem;
+}
+
+/* Button group styling */
+.button-group {
+  display: flex;
+  gap: 1rem;
+}
+
 /* Submit button styling */
-button[type="submit"] {
+.submit-button {
   background-color: #3498db;
   color: white;
   border: none;
@@ -112,12 +144,28 @@ button[type="submit"] {
   border-radius: 4px;
   font-size: 1rem;
   cursor: pointer;
-  align-self: flex-start;
   transition: background-color 0.2s;
 }
 
 /* Submit button hover state */
-button[type="submit"]:hover {
+.submit-button:hover {
   background-color: #2980b9;
+}
+
+/* Cancel button styling */
+.cancel-button {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+/* Cancel button hover state */
+.cancel-button:hover {
+  background-color: #c0392b;
 }
 </style>

@@ -90,8 +90,24 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+        'OPTIONS': {
+            'timeout': 20,  # Database connection timeout (seconds)
+        },
     }
 }
+
+# Database connection signal for enabling SQLite foreign key constraints
+from django.db.backends.signals import connection_created
+
+def activate_foreign_keys(sender, connection, **kwargs):
+    """Activate foreign key constraints when SQLite connection is created"""
+    if connection.vendor == 'sqlite':
+        cursor = connection.cursor()
+        cursor.execute('PRAGMA foreign_keys = ON;')
+        cursor.execute('PRAGMA journal_mode = WAL;')
+        cursor.execute('PRAGMA cache_size = -64000;')
+
+connection_created.connect(activate_foreign_keys)
 
 
 # Password validation
@@ -150,16 +166,16 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',  # ✅ Only authenticated users can use the API
     ],
-    # flightinfo 앱에 대한 권한 설정 - 인증 없이 접근 가능
+    # flightinfo app permission setting - accessible without authentication
     'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
     'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
 }
 
-# 각 앱별 권한 설정
+# Each app permission setting
 REST_FRAMEWORK_CUSTOM = {
     'flightinfo': {
         'DEFAULT_PERMISSION_CLASSES': [
-            'rest_framework.permissions.AllowAny',  # 항공편 정보 API는 인증 없이 접근 가능
+            'rest_framework.permissions.AllowAny',  # flight info API is accessible without authentication
         ],
     },
 }

@@ -15,25 +15,13 @@
             <!-- Buttons for non-authenticated users -->
             <div v-if="!isAuthenticated">
               <v-btn
-                to="/flights"
-                x-large
-                color="primary"
-                elevation="4"
-                class="mr-4 mb-4"
-                data-aos="fade-up"
-                data-aos-delay="200"
-              >
-                <v-icon left>mdi-airplane</v-icon>
-                Flight Search
-              </v-btn>
-              <v-btn
                 to="/login"
                 x-large
                 color="info"
                 elevation="4"
                 class="mr-4 mb-4"
                 data-aos="fade-up"
-                data-aos-delay="300"
+                data-aos-delay="200"
               >
                 <v-icon left>mdi-login</v-icon>
                 Login
@@ -45,7 +33,7 @@
                 elevation="4"
                 class="mb-4"
                 data-aos="fade-up"
-                data-aos-delay="400"
+                data-aos-delay="300"
               >
                 <v-icon left>mdi-account-plus</v-icon>
                 Register

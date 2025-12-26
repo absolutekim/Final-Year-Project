@@ -30,7 +30,19 @@ def analyze_review(review_text, rating=None):
             sentiment = "NEGATIVE"
     
     # Extract keywords with context using enhanced method
-    pos_keywords, neg_keywords, meaning_units = extract_contextual_keywords(review_text, sentiment)
+    try:
+        pos_keywords, neg_keywords, meaning_units = extract_contextual_keywords(review_text, sentiment)
+    except Exception as e:
+        print(f"Keyword extraction error: {str(e)}")
+        # Initialize empty lists in case of error
+        pos_keywords, neg_keywords = [], []
+        meaning_units = {
+            'phrases': [],
+            'adj_noun_pairs': [],
+            'negation_concepts': [],
+            'positive_units': [],
+            'negative_units': []
+        }
     
     return {
         'sentiment': sentiment,
@@ -53,88 +65,105 @@ def extract_contextual_keywords(text, sentiment, top_n=5):
     Returns:
         tuple: (positive_keywords, negative_keywords, meaning_units)
     """
-    # 1. Regular keyword extraction (keep existing functionality)
-    # Preprocess text with improved tokenization
-    tokens = nlp_processor.preprocess_text(text, filter_adverbs=True)
-    
-    # Separate words by context
-    negation_words = {'no', 'not', 'never', 'nothing', 'nowhere', 'none', 'neither', 'nor', 'barely', 'hardly', 'rarely', 'seldom', 'lack', 'missing', 'empty'}
-    negation_context = False
-    positive_tokens = []
-    negative_tokens = []
-    
-    # Simple negation detection
-    words = text.lower().split()
-    for i, word in enumerate(words):
-        if word in negation_words or word.endswith("n't"):
-            negation_context = True
-            # Look ahead for content words (nouns, adjectives)
-            for j in range(i+1, min(i+4, len(words))):
-                if j < len(words) and words[j] in tokens and words[j] not in negation_words:
-                    negative_tokens.append(words[j])
-    
-    # Categorize remaining tokens
-    for token in tokens:
-        if token.lower() in negative_tokens:
-            continue  # Already handled in negation context
-        if token.lower() in negation_words:
-            negative_tokens.append(token)
-        else:
-            if sentiment == "NEGATIVE":
-                negative_tokens.append(token)
-            else:
-                positive_tokens.append(token)
-    
-    # 2. NEW: Enhanced meaning unit extraction with spaCy
-    # Extract rich semantic units
-    meaning_units = {}
-    
-    # Use spaCy to extract advanced meaning units
-    spacy_units = nlp_processor.extract_meaning_units(text)
-    
-    # Categorize meaning units based on sentiment
-    positive_meaning_units = []
-    negative_meaning_units = []
-    
-    # Process adjective-noun pairs
-    for pair in spacy_units['adj_noun_pairs']:
-        if sentiment == "NEGATIVE":
-            negative_meaning_units.append(pair)
-        else:
-            positive_meaning_units.append(pair)
-    
-    # Negation concepts always go to negative keywords
-    negative_meaning_units.extend(spacy_units['negation_concepts'])
-    
-    # Store all extracted meaning units
-    meaning_units = {
-        'phrases': spacy_units['phrases'],
-        'adj_noun_pairs': spacy_units['adj_noun_pairs'],
-        'negation_concepts': spacy_units['negation_concepts'],
-        'positive_units': positive_meaning_units,
-        'negative_units': negative_meaning_units
+    # Initialize default values (used in case of exception)
+    default_positive_tokens = []
+    default_negative_tokens = []
+    default_meaning_units = {
+        'phrases': [],
+        'adj_noun_pairs': [],
+        'negation_concepts': [],
+        'positive_units': [],
+        'negative_units': []
     }
     
-    # Enhance keywords with key meaning units
-    # Add key meaning units to keywords
-    for unit in spacy_units['negation_concepts']:
-        if unit not in negative_tokens:
-            negative_tokens.append(unit)
+    try:
+        # 1. Regular keyword extraction (keep existing functionality)
+        # Preprocess text with improved tokenization
+        tokens = nlp_processor.preprocess_text(text, filter_adverbs=True)
+        
+        # Separate words by context
+        negation_words = {'no', 'not', 'never', 'nothing', 'nowhere', 'none', 'neither', 'nor', 'barely', 'hardly', 'rarely', 'seldom', 'lack', 'missing', 'empty'}
+        negation_context = False
+        positive_tokens = []
+        negative_tokens = []
+        
+        # Simple negation detection
+        words = text.lower().split()
+        for i, word in enumerate(words):
+            if word in negation_words or word.endswith("n't"):
+                negation_context = True
+                # Look ahead for content words (nouns, adjectives)
+                for j in range(i+1, min(i+4, len(words))):
+                    if j < len(words) and words[j] in tokens and words[j] not in negation_words:
+                        negative_tokens.append(words[j])
+        
+        # Categorize remaining tokens
+        for token in tokens:
+            if token.lower() in negative_tokens:
+                continue  # Already handled in negation context
+            if token.lower() in negation_words:
+                negative_tokens.append(token)
+            else:
+                if sentiment == "NEGATIVE":
+                    negative_tokens.append(token)
+                else:
+                    positive_tokens.append(token)
+        
+        # 2. NEW: Enhanced meaning unit extraction with spaCy
+        # Extract rich semantic units
+        meaning_units = {}
+        
+        # Use spaCy to extract advanced meaning units
+        spacy_units = nlp_processor.extract_meaning_units(text)
+        
+        # Categorize meaning units based on sentiment
+        positive_meaning_units = []
+        negative_meaning_units = []
+        
+        # Process adjective-noun pairs
+        for pair in spacy_units['adj_noun_pairs']:
+            if sentiment == "NEGATIVE":
+                negative_meaning_units.append(pair)
+            else:
+                positive_meaning_units.append(pair)
+        
+        # Negation concepts always go to negative keywords
+        negative_meaning_units.extend(spacy_units['negation_concepts'])
+        
+        # Store all extracted meaning units
+        meaning_units = {
+            'phrases': spacy_units['phrases'],
+            'adj_noun_pairs': spacy_units['adj_noun_pairs'],
+            'negation_concepts': spacy_units['negation_concepts'],
+            'positive_units': positive_meaning_units,
+            'negative_units': negative_meaning_units
+        }
+        
+        # Enhance keywords with key meaning units
+        # Add key meaning units to keywords
+        for unit in spacy_units['negation_concepts']:
+            if unit not in negative_tokens:
+                negative_tokens.append(unit)
+        
+        # Special handling for certain patterns like "large but nothing"
+        for key in spacy_units.get('negation_concepts', []):
+            if key.startswith('empty_') or key.startswith('no_'):
+                if key not in negative_tokens:
+                    negative_tokens.append(key)
+        
+        # Remove duplicates and sort by frequency
+        pos_counts = Counter(positive_tokens)
+        neg_counts = Counter(negative_tokens)
+        
+        positive_keywords = [word for word, _ in pos_counts.most_common(top_n)]
+        negative_keywords = [word for word, _ in neg_counts.most_common(top_n)]
+        
+        return positive_keywords, negative_keywords, meaning_units
     
-    # Special handling for certain patterns like "large but nothing"
-    for key in spacy_units.get('negation_concepts', []):
-        if key.startswith('empty_') or key.startswith('no_'):
-            if key not in negative_tokens:
-                negative_tokens.append(key)
-    
-    # Remove duplicates and sort by frequency
-    pos_counts = Counter(positive_tokens)
-    neg_counts = Counter(negative_tokens)
-    
-    positive_keywords = [word for word, _ in pos_counts.most_common(top_n)]
-    negative_keywords = [word for word, _ in neg_counts.most_common(top_n)]
-    
-    return positive_keywords, negative_keywords, meaning_units
+    except Exception as e:
+        print(f"Extraction process error: {e}")
+        # Return default values in case of error
+        return default_positive_tokens, default_negative_tokens, default_meaning_units
 
 def find_similar_destinations(keywords, user_id, limit=10, exclude_location_ids=None, avoid_keywords=None):
     """

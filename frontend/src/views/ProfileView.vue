@@ -1,3 +1,4 @@
+<!-- This file has created but replaced by other files. However, to do not corrupt system, it's being kept. -->
 <template>
   <!-- Profile page container -->
   <div class="profile-container">

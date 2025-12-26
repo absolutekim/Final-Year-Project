@@ -47,7 +47,7 @@ class Location(models.Model):
     def __str__(self):
         return self.name
 
-# 좋아요 모델
+# Like model
 class Like(models.Model):
     """
     User like model.
@@ -119,7 +119,7 @@ class Like(models.Model):
             # Ignore if the location has been deleted
             pass
 
-# 리뷰 모델
+# Review model
 class Review(models.Model):
     """
     User review model.
@@ -168,13 +168,40 @@ class Review(models.Model):
         Returns:
             The saved Review instance
         """
-        # Perform sentiment analysis when saving the review
-        if self.content:
-            from .review_utils import analyze_review
-            analysis_result = analyze_review(self.content)
+        # Skip analysis if keywords are already provided
+        if hasattr(self, '_skip_analysis') and self._skip_analysis:
+            return super().save(*args, **kwargs)
             
-            self.sentiment = analysis_result['sentiment']
-            self.sentiment_score = analysis_result['sentiment_score']
-            self.keywords = analysis_result['keywords']
+        # Perform sentiment analysis when saving the review
+        if self.content and not kwargs.get('no_analysis', False):
+            try:
+                from .review_utils import analyze_review
+                analysis_result = analyze_review(self.content)
+                
+                self.sentiment = analysis_result.get('sentiment', 'NEUTRAL')
+                self.sentiment_score = analysis_result.get('sentiment_score', 0.5)
+                
+                # Safe keyword storage
+                if kwargs.get('skip_keywords', False):
+                    # Skip keyword analysis
+                    self.keywords = self.keywords or {'positive_keywords': [], 'negative_keywords': []}
+                else:
+                    # Store keywords in a safe structure format
+                    self.keywords = {
+                        'positive_keywords': analysis_result.get('positive_keywords', []),
+                        'negative_keywords': analysis_result.get('negative_keywords', [])
+                    }
+            except Exception as e:
+                print(f"Review analysis error: {str(e)}")
+                # Use default sentiment in case of error
+                if self.rating >= 4:
+                    self.sentiment = 'POSITIVE'
+                elif self.rating <= 2:
+                    self.sentiment = 'NEGATIVE'
+                else:
+                    self.sentiment = 'NEUTRAL'
+                    
+                self.sentiment_score = 0.5
+                self.keywords = {'positive_keywords': [], 'negative_keywords': []}
         
         super().save(*args, **kwargs)

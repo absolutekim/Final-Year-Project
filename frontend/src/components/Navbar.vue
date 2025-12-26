@@ -46,8 +46,6 @@
         Recommendations
       </v-btn>
 
-      
-
       <v-btn text to="/planner" class="mx-2 nav-btn">
         <v-icon left>mdi-calendar-check</v-icon>
         Planner

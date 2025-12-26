@@ -3,6 +3,17 @@
   <v-container class="post-detail-container">
     <v-row justify="center">
       <v-col cols="12" md="8">
+        <!-- Back to Community button -->
+        <v-btn 
+          color="primary" 
+          text 
+          class="mb-4" 
+          @click="$router.push('/community')"
+        >
+          <v-icon left>mdi-arrow-left</v-icon>
+          Back to Community
+        </v-btn>
+        
         <!-- Post detail card with elevation -->
         <v-card class="post-detail-card" elevation="4">
           <!-- Post title and author information -->
@@ -105,7 +116,11 @@
                 hide-details
                 class="mb-2"
                 placeholder="Remain your Comment..."
+                maxlength="500"
               ></v-textarea>
+              <div class="character-counter mb-2">
+                {{ newComment.length }} / 500 characters
+              </div>
               <v-btn
                 color="primary"
                 type="submit"
@@ -136,7 +151,7 @@ import UserAvatar from '@/components/UserAvatar.vue';
  */
 export default {
   components: {
-    UserAvatar // UserAvatar 컴포넌트 등록
+    UserAvatar // UserAvatar component registration
   },
   data() {
     return {
@@ -164,11 +179,8 @@ export default {
 
       const commentsResponse = await axios.get(`/api/community/posts/${postId}/comments/all/`);
       this.post.comments = commentsResponse.data;
-      
-      console.log('Current logged-in user:', localStorage.getItem('username'));
-      console.log('Comments list:', this.post.comments);
     } catch (error) {
-      console.error("Failed to retrieve post:", error);
+      // Error handled silently
     }
   },
   methods: {
@@ -180,7 +192,7 @@ export default {
     formatDate(dateString) {
       if (!dateString) return '';
       const date = new Date(dateString);
-      return date.toLocaleDateString('ko-KR', {
+      return date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
@@ -210,7 +222,7 @@ export default {
           alert("The post has been deleted.");
           this.$router.push('/community');
         } catch (error) {
-          console.error("🚨 Failed to delete post:", error);
+          // Error handled silently
         }
       }
     },
@@ -231,7 +243,7 @@ export default {
         const commentsResponse = await axios.get(`/api/community/posts/${this.post.id}/comments/all/`);
         this.post.comments = commentsResponse.data;
       } catch (error) {
-        console.error("🚨 Failed to add comment:", error);
+        // Error handled silently
       }
     },
     
@@ -246,7 +258,7 @@ export default {
           await axios.delete(`/api/community/comments/${commentId}/`);
           this.post.comments = this.post.comments.filter(c => c.id !== commentId);
         } catch (error) {
-          console.error("🚨 Failed to delete comment:", error);
+          // Error handled silently
         }
       }
     }
@@ -318,5 +330,13 @@ export default {
 .v-textarea {
   background-color: #f8f9fa;
   border-radius: 4px;
+}
+
+/* Character counter styling */
+.character-counter {
+  font-size: 12px;
+  color: #718096;
+  text-align: right;
+  margin-top: 4px;
 }
 </style>

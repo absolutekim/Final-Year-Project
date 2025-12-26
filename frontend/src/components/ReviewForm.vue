@@ -51,7 +51,11 @@
         placeholder="Share your experience about this destination..." 
         rows="4"
         :disabled="isLoading"
+        maxlength="1000"
       ></textarea>
+      <div class="character-counter">
+        {{ review.content.length }} / 1000 characters
+      </div>
     </div>
     
     <!-- Form action buttons -->
@@ -106,10 +110,6 @@ export default {
     };
   },
   mounted() {
-    console.log('ReviewForm mounted - locationId:', this.locationId);
-    console.log('ReviewForm mounted - existingReview:', this.existingReview);
-    console.log('ReviewForm mounted - initial rating:', this.review.rating);
-    console.log('ReviewForm mounted - initial content:', this.review.content);
   },
   setup() {
     const toast = useToast();
@@ -122,7 +122,6 @@ export default {
      */
     isValid() {
       const valid = this.review.rating > 0 && this.review.content.trim().length > 0;
-      console.log('Rating:', this.review.rating, 'Content length:', this.review.content.trim().length, 'isValid:', valid);
       return valid;
     }
   },
@@ -132,10 +131,8 @@ export default {
      * @param {number} rating - Selected rating value (1-5)
      */
     setRating(rating) {
-      console.log('Setting rating to:', rating);
       if (!this.isLoading) {
         this.review.rating = rating;
-        console.log('Rating after setting:', this.review.rating);
       }
     },
     
@@ -144,9 +141,6 @@ export default {
      * Creates a new review or updates an existing one
      */
     async submitReview() {
-      console.log('submitReview called');
-      console.log('Current review state:', this.review);
-      
       if (!localStorage.getItem('access_token')) {
         this.toast.warning('Login is required for this feature.');
         this.$router.push('/login');
@@ -154,30 +148,29 @@ export default {
       }
       
       if (!this.isValid) {
-        console.log('Validation failed');
-        console.log('Rating:', this.review.rating, 'Content length:', this.review.content.trim().length);
         this.toast.warning('Please provide both rating and review content.');
         return;
       }
       
       this.isLoading = true;
-      console.log('Sending review data');
       
       try {
+        const locationId = parseInt(this.locationId, 10);
+        
+        if (isNaN(locationId)) {
+          throw new Error('Invalid location ID');
+        }
+        
         const reviewData = {
-          location_id: this.locationId,
+          location_id: locationId,
           rating: this.review.rating,
           content: this.review.content
         };
-        
-        console.log('Review data to send:', reviewData);
         
         let response;
         const token = localStorage.getItem('access_token');
         
         if (this.existingReview) {
-          // Update existing review
-          console.log('Updating existing review...');
           response = await axios.put(
             `http://localhost:8000/api/destinations/reviews/${this.existingReview.id}/`,
             reviewData,
@@ -189,8 +182,6 @@ export default {
           );
           this.toast.success('Review updated successfully.');
         } else {
-          // Create new review
-          console.log('Creating new review...');
           response = await axios.post(
             'http://localhost:8000/api/destinations/reviews/',
             reviewData,
@@ -200,14 +191,11 @@ export default {
               }
             }
           );
-          console.log('Review submission response:', response.data);
           this.toast.success('Review submitted successfully.');
         }
         
-        // Notify parent component
         this.$emit('review-submitted', response.data);
         
-        // Reset form for new review creation
         if (!this.existingReview) {
           this.review.rating = 0;
           this.review.content = '';
@@ -216,8 +204,18 @@ export default {
         console.error('Error submitting review:', error);
         if (error.response) {
           console.error('Error response:', error.response.data);
+          
+          // Handle specific error cases with clear messages
+          if (error.response.data.error && error.response.data.error.includes('already written a review')) {
+            this.toast.error('You have already submitted a review for this destination. You can edit your existing review below.');
+          } else if (error.response.status === 400 && error.response.data.content) {
+            this.toast.error(`Review error: ${error.response.data.content[0]}`);
+          } else {
+            this.toast.error('An error occurred while submitting your review. Please try again.');
+          }
+        } else {
+          this.toast.error('An error occurred while submitting your review. Please try again.');
         }
-        this.toast.error('An error occurred while submitting your review.');
       } finally {
         this.isLoading = false;
       }
@@ -347,6 +345,14 @@ textarea:focus {
 textarea:disabled {
   background-color: #f7fafc;
   cursor: not-allowed;
+}
+
+/* Character counter display */
+.character-counter {
+  font-size: 12px;
+  color: #718096;
+  text-align: right;
+  margin-top: 4px;
 }
 
 /* Action buttons container */

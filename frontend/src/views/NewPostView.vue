@@ -19,9 +19,13 @@
                 dense
                 required
                 :rules="[v => !!v || 'Write your Title']"
-                class="mb-4"
+                class="mb-2"
                 placeholder="Please Write your Title..."
+                maxlength="255"
               ></v-text-field>
+              <div class="character-counter mb-4">
+                {{ title.length }} / 255 characters
+              </div>
 
               <v-textarea
                 v-model="content"
@@ -31,9 +35,13 @@
                 required
                 :rules="[v => !!v || 'Write your Content']"
                 rows="10"
-                class="mb-6"
+                class="mb-2"
                 placeholder="Please Write your Content..."
+                maxlength="3000"
               ></v-textarea>
+              <div class="character-counter mb-4">
+                {{ content.length }} / 3000 characters
+              </div>
 
               <div class="d-flex justify-space-between">
                 <!-- Back button to return to community page -->
@@ -95,16 +103,15 @@ export default {
       this.loading = true;
       try {
         const userId = localStorage.getItem('user_id');
-        const response = await axios.post(`http://localhost:8000/api/community/posts/`, {
+        await axios.post(`http://localhost:8000/api/community/posts/`, {
           title: this.title,
           content: this.content,
           author_id: userId
         });
 
-        console.log("✅ Post created successfully:", response.data);
         this.$router.push('/community');
       } catch (error) {
-        console.error("🚨 Failed to create post:", error);
+        // Error handled silently
       } finally {
         this.loading = false;
       }
@@ -159,5 +166,13 @@ export default {
 /* Form width constraint */
 .v-form {
   max-width: 100%;
+}
+
+/* Character counter styling */
+.character-counter {
+  font-size: 12px;
+  color: #718096;
+  text-align: right;
+  margin-top: 4px;
 }
 </style>

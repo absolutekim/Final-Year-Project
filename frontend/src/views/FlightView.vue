@@ -1,42 +1,38 @@
 <template>
-  <div class="container mx-auto p-4">
-    <!-- Top banner image -->
-    <div class="banner-container mb-8 rounded-xl overflow-hidden relative">
-      <img src="https://images.unsplash.com/photo-1503220317375-aaad61436b1b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80" 
-        alt="banner image" 
-        class="w-full h-64 object-cover"
-      />
-      <div class="absolute inset-0 bg-gradient-to-r from-blue-900/70 to-indigo-900/40 flex flex-col justify-center px-8 md:px-12">
-        <h1 class="text-4xl md:text-5xl font-bold mb-2 text-white">Flight Search</h1>
-        <p class="text-white/90 text-lg md:text-xl max-w-xl">Find the best flight to your destination</p>
+  <div class="flight-container">
+    <!-- Top banner with gradient instead of image -->
+    <div class="banner-container mb-8 rounded-xl overflow-hidden relative max-w-6xl mx-auto">
+      <div class="gradient-banner w-full h-64 flex flex-col justify-center items-center px-8 md:px-12 text-center">
+        <h1 class="text-4xl md:text-5xl font-bold mb-3 text-white">Flight Search</h1>
+        <p class="text-white md:text-2xl max-w-xl font-medium banner-text">Find the best flight to your destination</p>
       </div>
     </div>
     
     <!-- Search form -->
-    <div class="search-form p-6 mb-8">
-      <div class="flex gap-6 mb-5">
+    <div class="search-form p-6 mb-8 max-w-3xl mx-auto">
+      <div class="flex justify-center gap-6 mb-5">
         <div class="flex gap-2 items-center">
-          <input type="radio" id="round-trip" v-model="tripType" value="round" class="w-5 h-5 accent-blue-600">
+          <input type="radio" id="round-trip" v-model="tripType" value="round" class="w-5 h-5 accent-primary">
           <label for="round-trip" class="text-lg font-medium">Round Trip</label>
         </div>
         <div class="flex gap-2 items-center">
-          <input type="radio" id="one-way" v-model="tripType" value="one-way" class="w-5 h-5 accent-blue-600">
+          <input type="radio" id="one-way" v-model="tripType" value="one-way" class="w-5 h-5 accent-primary">
           <label for="one-way" class="text-lg font-medium">One Way</label>
         </div>
       </div>
       
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5 mx-auto">
         <!-- Departure -->
         <div class="relative">
-          <label class="block mb-2 font-medium text-gray-700">Departure</label>
+          <label class="block mb-2 font-medium text-gray-700 text-center">Departure</label>
           <div class="relative">
-            <i class="material-icons absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">flight_takeoff</i>
+            <i class="material-icons absolute left-3 top-1/2 transform -translate-y-1/2 text-primary">flight_takeoff</i>
             <input 
               type="text" 
               v-model="originQuery" 
               @input="searchOriginAirports" 
               placeholder="City or Airport" 
-              class="w-full pl-10 pr-3 py-3 border rounded-lg"
+              class="w-full pl-10 pr-3 py-3 border rounded-lg focus:ring focus:ring-primary/30"
             >
           </div>
           <div v-if="showOriginDropdown && originAirports.length" class="dropdown-menu absolute z-10 bg-white w-full mt-1 max-h-64 overflow-y-auto">
@@ -44,7 +40,7 @@
               v-for="airport in originAirports" 
               :key="airport.presentation.id" 
               @click="selectOrigin(airport)"
-              class="dropdown-item p-3 cursor-pointer"
+              class="dropdown-item p-3 cursor-pointer hover:bg-primary/5"
             >
               <div class="font-medium">{{ airport.presentation.title }}</div>
               <div class="text-sm text-gray-500">{{ airport.presentation.subtitle }}</div>
@@ -54,15 +50,15 @@
         
         <!-- Destination -->
         <div class="relative">
-          <label class="block mb-2 font-medium text-gray-700">Destination</label>
+          <label class="block mb-2 font-medium text-gray-700 text-center">Destination</label>
           <div class="relative">
-            <i class="material-icons absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">flight_land</i>
+            <i class="material-icons absolute left-3 top-1/2 transform -translate-y-1/2 text-primary">flight_land</i>
             <input 
               type="text" 
               v-model="destinationQuery" 
               @input="searchDestinationAirports" 
               placeholder="City or Airport" 
-              class="w-full pl-10 pr-3 py-3 border rounded-lg"
+              class="w-full pl-10 pr-3 py-3 border rounded-lg focus:ring focus:ring-primary/30"
             >
           </div>
           <div v-if="showDestinationDropdown && destinationAirports.length" class="dropdown-menu absolute z-10 bg-white w-full mt-1 max-h-64 overflow-y-auto">
@@ -70,7 +66,7 @@
               v-for="airport in destinationAirports" 
               :key="airport.presentation.id" 
               @click="selectDestination(airport)"
-              class="dropdown-item p-3 cursor-pointer"
+              class="dropdown-item p-3 cursor-pointer hover:bg-primary/5"
             >
               <div class="font-medium">{{ airport.presentation.title }}</div>
               <div class="text-sm text-gray-500">{{ airport.presentation.subtitle }}</div>
@@ -79,16 +75,16 @@
         </div>
       </div>
       
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6 mx-auto">
         <!-- Departure date -->
         <div>
-          <label class="block mb-2 font-medium text-gray-700">Departure Date</label>
+          <label class="block mb-2 font-medium text-gray-700 text-center">Departure Date</label>
           <div class="relative">
-            <i class="material-icons absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">event</i>
+            <i class="material-icons absolute left-3 top-1/2 transform -translate-y-1/2 text-primary">event</i>
             <input 
               type="date" 
               v-model="departDate" 
-              class="w-full pl-10 pr-3 py-3 border rounded-lg"
+              class="w-full pl-10 pr-3 py-3 border rounded-lg focus:ring focus:ring-primary/30"
               :min="today"
             >
           </div>
@@ -96,13 +92,13 @@
         
         <!-- Return date (only for round trips) -->
         <div v-if="tripType === 'round'">
-          <label class="block mb-2 font-medium text-gray-700">Return Date</label>
+          <label class="block mb-2 font-medium text-gray-700 text-center">Return Date</label>
           <div class="relative">
-            <i class="material-icons absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">event</i>
+            <i class="material-icons absolute left-3 top-1/2 transform -translate-y-1/2 text-primary">event</i>
             <input 
               type="date" 
               v-model="returnDate" 
-              class="w-full pl-10 pr-3 py-3 border rounded-lg"
+              class="w-full pl-10 pr-3 py-3 border rounded-lg focus:ring focus:ring-primary/30"
               :min="departDate || today"
             >
           </div>
@@ -110,10 +106,10 @@
         
         <!-- Cabin class -->
         <div>
-          <label class="block mb-2 font-medium text-gray-700">Cabin Class</label>
+          <label class="block mb-2 font-medium text-gray-700 text-center">Cabin Class</label>
           <div class="relative">
-            <i class="material-icons absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">airline_seat_recline_normal</i>
-            <select v-model="cabinClass" class="w-full pl-10 pr-3 py-3 border rounded-lg appearance-none">
+            <i class="material-icons absolute left-3 top-1/2 transform -translate-y-1/2 text-primary">airline_seat_recline_normal</i>
+            <select v-model="cabinClass" class="w-full pl-10 pr-3 py-3 border rounded-lg appearance-none focus:ring focus:ring-primary/30">
               <option value="economy">Economy</option>
               <option value="premium_economy">Premium Economy</option>
               <option value="business">Business</option>
@@ -125,27 +121,27 @@
         
         <!-- Number of passengers -->
         <div>
-          <label class="block mb-2 font-medium text-gray-700">Passengers</label>
+          <label class="block mb-2 font-medium text-gray-700 text-center">Passengers</label>
           <div class="grid grid-cols-3 gap-3">
             <div>
-              <label class="text-sm text-gray-600 mb-1 block">Adult</label>
+              <label class="text-sm text-gray-600 mb-1 block text-center">Adult</label>
               <div class="relative">
-                <i class="material-icons absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">person</i>
-                <input type="number" v-model="adults" min="1" max="9" class="w-full pl-10 pr-3 py-3 border rounded-lg">
+                <i class="material-icons absolute left-3 top-1/2 transform -translate-y-1/2 text-primary">person</i>
+                <input type="number" v-model="adults" min="1" max="9" class="w-full pl-10 pr-3 py-3 border rounded-lg focus:ring focus:ring-primary/30">
               </div>
             </div>
             <div>
-              <label class="text-sm text-gray-600 mb-1 block">Child</label>
+              <label class="text-sm text-gray-600 mb-1 block text-center">Child</label>
               <div class="relative">
-                <i class="material-icons absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">child_care</i>
-                <input type="number" v-model="children" min="0" max="9" class="w-full pl-10 pr-3 py-3 border rounded-lg">
+                <i class="material-icons absolute left-3 top-1/2 transform -translate-y-1/2 text-primary">child_care</i>
+                <input type="number" v-model="children" min="0" max="9" class="w-full pl-10 pr-3 py-3 border rounded-lg focus:ring focus:ring-primary/30">
               </div>
             </div>
             <div>
-              <label class="text-sm text-gray-600 mb-1 block">Infant</label>
+              <label class="text-sm text-gray-600 mb-1 block text-center">Infant</label>
               <div class="relative">
-                <i class="material-icons absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">baby_changing_station</i>
-                <input type="number" v-model="infants" min="0" max="9" class="w-full pl-10 pr-3 py-3 border rounded-lg">
+                <i class="material-icons absolute left-3 top-1/2 transform -translate-y-1/2 text-primary">baby_changing_station</i>
+                <input type="number" v-model="infants" min="0" max="9" class="w-full pl-10 pr-3 py-3 border rounded-lg focus:ring focus:ring-primary/30">
               </div>
             </div>
           </div>
@@ -154,7 +150,7 @@
       
       <button 
         @click="searchFlights" 
-        class="search-button w-full text-white py-4 px-6 rounded-lg font-medium text-lg flex items-center justify-center"
+        class="search-button py-4 px-6 rounded-lg font-semibold text-lg flex items-center justify-center mx-auto w-full md:w-64"
         :disabled="isLoading"
       >
         <i class="material-icons mr-2" v-if="!isLoading">search</i>
@@ -164,17 +160,73 @@
     </div>
     
     <!-- Search results -->
-    <div v-if="flightResults && flightResults.data" class="bg-white rounded-lg shadow-md p-6">
-      <h2 class="text-2xl font-semibold mb-6 flex items-center">
-        <i class="material-icons mr-2 text-blue-600">flight</i>
+    <div v-if="flightResults && flightResults.data" class="results-container bg-white rounded-lg shadow-md p-6 max-w-6xl mx-auto">
+      <h2 class="text-2xl font-semibold mb-6 flex items-center justify-center">
+        <i class="material-icons mr-2 text-primary">flight</i>
         Search Results
       </h2>
       
-      <div v-if="flightResults.data.itineraries && flightResults.data.itineraries.length">
-        <div v-for="flight in flightResults.data.itineraries" :key="flight.id" class="flight-card mb-5">
-          <div class="bg-blue-50 p-4">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
-              <div class="flex flex-col">
+      <!-- General flight search results (one-way or round-trip) -->
+      <div v-if="flightResults.data.responseType === 'itineraries' && flightResults.data.itineraries && flightResults.data.itineraries.length">
+        <!-- Summary of search results -->
+        <div class="results-summary p-4 rounded-lg mb-5 text-center">
+          <div class="flex flex-col md:flex-row justify-center items-center">
+            <div class="text-lg font-medium text-gray-700">
+              Total <span class="font-bold text-primary">{{ flightResults.data.itineraries.length }}</span> flight search results
+            </div>
+            <div class="text-sm text-gray-600 ml-4">
+              {{ currentPage * itemsPerPage + 1 }}-{{ Math.min((currentPage + 1) * itemsPerPage, flightResults.data.itineraries.length) }}th result
+            </div>
+            <!-- DEBUG INFO: Number of pages -->
+            <div class="text-sm text-blue-600 ml-4">
+              (Page {{ currentPage + 1 }} of {{ totalPages }})
+            </div>
+          </div>
+          
+          <!-- API limit notification message -->
+          <div v-if="apiLimitReached" class="mt-3 text-sm text-orange-600 flex items-center justify-center">
+            <i class="material-icons text-orange-500 mr-1 text-base">info</i>
+            현재 Skyscanner API 제한으로 인해 검색 결과가 일부만 제공됩니다. 표시된 항공편 중에서 선택해 주세요.
+          </div>
+          
+          <!-- Flight sorting options -->
+          <div class="mt-3 flex flex-wrap gap-3 items-center justify-center">
+            <span class="text-sm font-medium text-gray-600">Sort by:</span>
+            <button 
+              @click="sortFlights('price')" 
+              class="sort-button px-3 py-1.5 rounded-full text-sm hover:bg-primary/10 transition"
+              :class="flightSortOption === 'price' ? 'bg-primary/10 text-primary font-medium' : 'bg-white text-gray-600'"
+            >
+              Lowest Price
+            </button>
+            <button 
+              @click="sortFlights('priceDesc')" 
+              class="sort-button px-3 py-1.5 rounded-full text-sm hover:bg-primary/10 transition"
+              :class="flightSortOption === 'priceDesc' ? 'bg-primary/10 text-primary font-medium' : 'bg-white text-gray-600'"
+            >
+              Highest Price
+            </button>
+            <button 
+              @click="sortFlights('duration')" 
+              class="sort-button px-3 py-1.5 rounded-full text-sm hover:bg-primary/10 transition"
+              :class="flightSortOption === 'duration' ? 'bg-primary/10 text-primary font-medium' : 'bg-white text-gray-600'"
+            >
+              Shortest Duration
+            </button>
+            <button 
+              @click="sortFlights('departure')" 
+              class="sort-button px-3 py-1.5 rounded-full text-sm hover:bg-primary/10 transition"
+              :class="flightSortOption === 'departure' ? 'bg-primary/10 text-primary font-medium' : 'bg-white text-gray-600'"
+            >
+              Fastest Departure
+            </button>
+          </div>
+        </div>
+        
+        <div v-for="flight in paginatedFlights" :key="flight.id" class="flight-card mb-5 max-w-4xl mx-auto">
+          <div class="card-header p-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+              <div class="flex flex-col text-center md:text-left">
                 <div class="text-xl font-semibold">
                   {{ getOriginDestinationText(flight) }}
                 </div>
@@ -183,7 +235,7 @@
                 </div>
               </div>
               <div class="mt-3 md:mt-0">
-                <div class="price-tag text-2xl">{{ flight.price.formatted }}</div>
+                <div class="price-tag text-2xl">{{ flight.price?.formatted || 'Price information not available' }}</div>
                 <div class="text-sm text-gray-500 text-right">Total Price</div>
               </div>
             </div>
@@ -191,10 +243,10 @@
           
           <div class="p-4">
             <div v-for="leg in flight.legs" :key="leg.id" class="flight-leg first:border-t-0 first:pt-0 mt-3">
-              <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-3">
-                <div>
+              <div class="flex flex-col md:flex-row justify-between items-center mb-3">
+                <div class="text-center md:text-left">
                   <div class="text-lg font-semibold">
-                    {{ leg.origin.displayCode }} ??{{ leg.destination.displayCode }}
+                    {{ leg.origin.displayCode }} → {{ leg.destination.displayCode }}
                   </div>
                   <div class="text-sm text-gray-600">
                     {{ formatDate(leg.departure) }} - {{ formatDate(leg.arrival) }}
@@ -203,27 +255,27 @@
                     </span>
                   </div>
                 </div>
-                <div class="flex flex-col items-end mt-2 md:mt-0">
+                <div class="flex flex-col items-center md:items-end mt-2 md:mt-0">
                   <div class="flight-duration">{{ formatDuration(leg.durationInMinutes) }}</div>
                   <div class="text-sm mt-1">
                     <span v-if="leg.stopCount === 0" class="text-green-600 font-medium">Direct</span>
-                    <span v-else class="text-orange-500 font-medium">{{ leg.stopCount }} stop</span>
+                    <span v-else class="text-orange-500 font-medium">{{ leg.stopCount }} Stop</span>
                   </div>
                 </div>
               </div>
               
-              <div class="flex flex-wrap gap-3 mt-3">
-                <div v-for="carrier in leg.carriers.marketing" :key="carrier.id" class="flex items-center bg-gray-50 px-3 py-2 rounded-full">
-                  <img :src="carrier.logoUrl" alt="airline logo" class="airline-logo mr-2">
-                  <span class="text-sm font-medium">{{ carrier.name }}</span>
+              <div class="flex flex-wrap gap-3 mt-3 justify-center">
+                <div v-for="carrier in leg.carriers.marketing" :key="carrier.id" class="flex items-center carrier-badge px-3 py-2 rounded-full">
+                  <span class="w-6 h-6 bg-primary/20 rounded-full flex items-center justify-center text-xs mr-2 text-primary">{{ carrier.name?.substring(0,1) || 'A' }}</span>
+                  <span class="text-sm font-medium">{{ carrier.name || 'Airline information not available' }}</span>
                 </div>
               </div>
             </div>
             
-            <div class="mt-4 text-right">
+            <div class="mt-4 flex justify-center">
               <button 
                 @click="viewFlightDetails(flight)" 
-                class="details-button bg-blue-600 text-white py-2.5 px-5 rounded-lg hover:bg-blue-700 transition flex items-center ml-auto"
+                class="details-button bg-primary text-white py-2.5 px-5 rounded-lg hover:bg-primary-dark transition flex items-center"
               >
                 <span class="mr-1">Details</span>
                 <i class="material-icons text-sm">arrow_forward</i>
@@ -231,73 +283,236 @@
             </div>
           </div>
         </div>
-      </div>
-      
-      <div v-else class="text-center p-8 text-gray-500 bg-gray-50 rounded-lg">
-        <i class="material-icons text-4xl mb-2 text-gray-400">search_off</i>
-        <p class="text-lg">No search results. Try different search conditions.</p>
-      </div>
-    </div>
-    
-    <!-- Recent search history -->
-    <div v-if="isAuthenticated && searchHistory && searchHistory.length > 0" class="mt-8 mb-8">
-      <div class="flex items-center mb-4">
-        <h2 class="text-xl font-semibold">
-          <i class="material-icons mr-2 text-blue-600">history</i>
-          Recent Search History
-        </h2>
-        <div class="ml-2 text-sm text-gray-500">
-          (Only personal search history is displayed)
+        
+        <!-- Pagination control -->
+        <div v-if="totalPages > 1" class="flex justify-center mt-8 mb-4 items-center">
+          <button 
+            @click="goToPage(0)" 
+            class="pagination-button mx-1 px-3 py-2 rounded-lg border hover:bg-gray-100" 
+            :disabled="currentPage === 0"
+            :class="{'opacity-50 cursor-not-allowed': currentPage === 0}"
+          >
+            <i class="material-icons text-sm">first_page</i>
+          </button>
+          
+          <button 
+            @click="goToPage(currentPage - 1)" 
+            class="pagination-button mx-1 px-3 py-2 rounded-lg border hover:bg-gray-100" 
+            :disabled="currentPage === 0"
+            :class="{'opacity-50 cursor-not-allowed': currentPage === 0}"
+          >
+            <i class="material-icons text-sm">chevron_left</i>
+          </button>
+          
+          <div class="flex mx-2">
+            <template v-for="page in pageNumbers" :key="page">
+              <button 
+                @click="goToPage(page)" 
+                class="pagination-button mx-1 px-4 py-2 rounded-lg"
+                :class="page === currentPage ? 'bg-primary text-white' : 'border hover:bg-gray-100'"
+              >
+                {{ page + 1 }}
+              </button>
+            </template>
+          </div>
+          
+          <button 
+            @click="goToPage(currentPage + 1)" 
+            class="pagination-button mx-1 px-3 py-2 rounded-lg border hover:bg-gray-100" 
+            :disabled="currentPage >= totalPages - 1"
+            :class="{'opacity-50 cursor-not-allowed': currentPage >= totalPages - 1}"
+          >
+            <i class="material-icons text-sm">chevron_right</i>
+          </button>
+          
+          <button 
+            @click="goToPage(totalPages - 1)" 
+            class="pagination-button mx-1 px-3 py-2 rounded-lg border hover:bg-gray-100" 
+            :disabled="currentPage >= totalPages - 1"
+            :class="{'opacity-50 cursor-not-allowed': currentPage >= totalPages - 1}"
+          >
+            <i class="material-icons text-sm">last_page</i>
+          </button>
         </div>
       </div>
       
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div 
-          v-for="(history, index) in searchHistory" 
-          :key="index" 
-          class="history-card p-4 cursor-pointer"
-          @click="loadSearchHistory(history)"
-        >
-          <div class="flex flex-col">
-            <div class="font-semibold text-blue-700">
-              {{ history.origin }} ??{{ history.destination }}
+      <!-- Destination search results (countryDestination) -->
+      <div v-else-if="flightResults.data.responseType === 'countryDestination' && flightResults.data.countryDestination" class="destination-results">
+        <!-- Total results count display -->
+        <div class="mb-6 p-4 results-summary rounded-lg text-center">
+          <div class="flex items-center justify-center">
+            <i class="material-icons mr-2 text-primary">travel_explore</i>
+            <div class="text-lg font-medium text-gray-700">
+              {{ flightResults.data.countryDestination.context.totalResults }} destination search results
             </div>
-            <div class="text-sm text-gray-600 mt-1">
-              Departure: {{ formatDate(history.departure_date) }}
-            </div>
-            <div v-if="history.return_date" class="text-sm text-gray-600">
-              Return: {{ formatDate(history.return_date) }}
-            </div>
-            <div class="text-xs text-gray-500 mt-2">
-              Search date: {{ formatDate(history.search_date) }}
+          </div>
+          
+          <!-- Sorting options -->
+          <div class="mt-3 flex flex-wrap gap-3 items-center justify-center">
+            <span class="text-sm font-medium text-gray-600">Sort by:</span>
+            <button 
+              @click="sortDestinations('price')" 
+              class="sort-button px-3 py-1.5 rounded-full text-sm hover:bg-primary/10 transition"
+              :class="sortOption === 'price' ? 'bg-primary/10 text-primary font-medium' : 'bg-white text-gray-600'"
+            >
+              Lowest Price
+            </button>
+            <button 
+              @click="sortDestinations('priceDesc')" 
+              class="sort-button px-3 py-1.5 rounded-full text-sm hover:bg-primary/10 transition"
+              :class="sortOption === 'priceDesc' ? 'bg-primary/10 text-primary font-medium' : 'bg-white text-gray-600'"
+            >
+              Highest Price
+            </button>
+            <button 
+              @click="sortDestinations('name')" 
+              class="sort-button px-3 py-1.5 rounded-full text-sm hover:bg-primary/10 transition"
+              :class="sortOption === 'name' ? 'bg-primary/10 text-primary font-medium' : 'bg-white text-gray-600'"
+            >
+              Name
+            </button>
+          </div>
+          
+          <!-- Selected category buttons -->
+          <div class="mt-3 flex flex-wrap gap-2 justify-center">
+            <button 
+              v-for="bucket in flightResults.data.countryDestination.buckets.slice(0, 5)" 
+              :key="bucket.id"
+              class="category-button px-3 py-1.5 rounded-full border text-sm hover:bg-primary/10 transition"
+            >
+              {{ bucket.label }}
+            </button>
+          </div>
+        </div>
+        
+        <!-- Destination card grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
+          <div 
+            v-for="result in paginatedDestinations" 
+            :key="result.id"
+            class="destination-card overflow-hidden rounded-lg border hover:shadow-lg transition duration-300 bg-white"
+          >
+            <!-- Destination information -->
+            <div class="p-4">
+              <div class="flex justify-between items-start">
+                <div>
+                  <h3 class="text-lg font-semibold text-gray-800">
+                    {{ result.content?.location?.name || 'Unknown location' }}
+                  </h3>
+                  <div class="text-sm text-gray-500 mt-1">
+                    {{ result.content?.location?.type || '' }}
+                    {{ result.content?.location?.iata ? `(${result.content.location.iata})` : '' }}
+                  </div>
+                </div>
+                
+                <!-- Price information -->
+                <div v-if="result.content?.flightQuotes?.cheapest || result.content?.flightQuotes?.direct" class="flex flex-col items-end">
+                  <div class="text-lg font-bold text-primary">
+                    {{ result.content.flightQuotes.direct?.price || result.content.flightQuotes.cheapest?.price || 'Price information not available' }}
+                  </div>
+                  <div class="flex items-center text-xs mt-1">
+                    <span 
+                      v-if="result.content.flightQuotes.direct?.direct || result.content.flightQuotes.cheapest?.direct" 
+                      class="text-green-600 font-medium"
+                    >
+                      <i class="material-icons text-xs mr-0.5">flight</i> Direct
+                    </span>
+                    <span v-else class="text-orange-500 font-medium">Stop</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Hotel price information (if available) -->
+              <div v-if="result.content?.hotelQuotes?.standard" class="flex items-center mt-3 pt-3 border-t border-gray-100">
+                <i class="material-icons text-gray-400 mr-1 text-sm">hotel</i>
+                <span class="text-sm text-gray-500">Hotel average {{ result.content.hotelQuotes.standard.price }} from</span>
+              </div>
+              
+              <!-- Action button -->
+              <div class="mt-4 flex justify-end">
+                <button 
+                  @click="viewDestinationDetails(result)" 
+                  class="text-primary font-medium text-sm hover:text-primary-dark transition flex items-center"
+                >
+                  <span>Details</span>
+                  <i class="material-icons text-sm ml-1">arrow_forward</i>
+                </button>
+              </div>
             </div>
           </div>
         </div>
+        
+        <!-- Pagination control -->
+        <div v-if="totalDestinationPages > 1" class="flex justify-center mt-8 mb-4 items-center">
+          <button 
+            @click="destinationPage = 0" 
+            class="pagination-button mx-1 px-3 py-2 rounded-lg border hover:bg-gray-100" 
+            :disabled="destinationPage === 0"
+            :class="{'opacity-50 cursor-not-allowed': destinationPage === 0}"
+          >
+            <i class="material-icons text-sm">first_page</i>
+          </button>
+          
+          <button 
+            @click="destinationPage--" 
+            class="pagination-button mx-1 px-3 py-2 rounded-lg border hover:bg-gray-100" 
+            :disabled="destinationPage === 0"
+            :class="{'opacity-50 cursor-not-allowed': destinationPage === 0}"
+          >
+            <i class="material-icons text-sm">chevron_left</i>
+          </button>
+          
+          <div class="flex mx-2">
+            <template v-for="page in destinationPageNumbers" :key="page">
+              <button 
+                @click="destinationPage = page" 
+                class="pagination-button mx-1 px-4 py-2 rounded-lg"
+                :class="page === destinationPage ? 'bg-primary text-white' : 'border hover:bg-gray-100'"
+              >
+                {{ page + 1 }}
+              </button>
+            </template>
+          </div>
+          
+          <button 
+            @click="destinationPage++" 
+            class="pagination-button mx-1 px-3 py-2 rounded-lg border hover:bg-gray-100" 
+            :disabled="destinationPage >= totalDestinationPages - 1"
+            :class="{'opacity-50 cursor-not-allowed': destinationPage >= totalDestinationPages - 1}"
+          >
+            <i class="material-icons text-sm">chevron_right</i>
+          </button>
+          
+          <button 
+            @click="destinationPage = totalDestinationPages - 1" 
+            class="pagination-button mx-1 px-3 py-2 rounded-lg border hover:bg-gray-100" 
+            :disabled="destinationPage >= totalDestinationPages - 1"
+            :class="{'opacity-50 cursor-not-allowed': destinationPage >= totalDestinationPages - 1}"
+          >
+            <i class="material-icons text-sm">last_page</i>
+          </button>
+        </div>
       </div>
-    </div>
-    
-    <!-- Login required message -->
-    <div v-if="!isAuthenticated" class="mt-8 mb-8 bg-blue-50 p-4 rounded-lg border border-blue-200">
-      <div class="flex items-center">
-        <i class="material-icons mr-2 text-blue-600">info</i>
-        <h3 class="text-lg font-medium text-blue-700">Want to save your search history?</h3>
+      
+      <!-- Error message -->
+      <div v-else-if="flightResults.data.responseType === 'error'" class="text-center p-8 text-red-500 bg-red-50 rounded-lg">
+        <i class="material-icons text-4xl mb-2 text-red-400">error</i>
+        <p class="text-lg">{{ flightResults.data.error || 'An error occurred during the search.' }}</p>
       </div>
-      <p class="mt-2 text-blue-600">
-        Log in to save your personal search history and use it conveniently.
-      </p>
-      <div class="mt-3">
-        <router-link to="/login" class="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200">
-          Log in
-        </router-link>
+      
+      <!-- No search results -->
+      <div v-else class="text-center p-8 text-gray-500 bg-gray-50 rounded-lg">
+        <i class="material-icons text-4xl mb-2 text-gray-400">search_off</i>
+        <p class="text-lg">No search results. Try different search conditions.</p>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
-import { searchAirports, searchFlights as apiSearchFlights, getSearchHistory } from '@/api/flight';
+import { searchAirports, searchFlights as apiSearchFlights, getCompleteResults } from '@/api/flight';
 
 export default {
   name: 'FlightView',
@@ -326,7 +541,114 @@ export default {
     // Search Results and Loading State
     const flightResults = ref(null);
     const isLoading = ref(false);
-    const searchHistory = ref([]);
+    
+    // Pagination related state
+    const currentPage = ref(0); // 0-based page number
+    const itemsPerPage = ref(50); // Number of items per page
+    
+    // Flight sorting related state and functions
+    const flightSortOption = ref('price'); // Default sorting: lowest price
+    
+    // Flight sorting function
+    const sortFlights = (option) => {
+      flightSortOption.value = option;
+      currentPage.value = 0; // Go back to the first page when sorting
+    };
+    
+    // Sorted flight list
+    const sortedFlights = computed(() => {
+      if (!flightResults.value || !flightResults.value.data || !flightResults.value.data.itineraries) {
+        console.log('No flight results available for sorting');
+        return [];
+      }
+      
+      const flightsCount = flightResults.value.data.itineraries.length;
+      console.log(`[DEBUG] sortedFlights Calculated: ${flightsCount} flights, sorting by: ${flightSortOption.value}`);
+      
+      // Create a copy of the original array
+      const flights = [...flightResults.value.data.itineraries];
+      
+      switch (flightSortOption.value) {
+        case 'price':
+          return flights.sort((a, b) => {
+            const priceA = a.price?.raw || Number.MAX_VALUE;
+            const priceB = b.price?.raw || Number.MAX_VALUE;
+            return priceA - priceB;
+          });
+        case 'priceDesc':
+          return flights.sort((a, b) => {
+            const priceA = a.price?.raw || 0;
+            const priceB = b.price?.raw || 0;
+            return priceB - priceA;
+          });
+        case 'duration':
+          return flights.sort((a, b) => {
+            const durationA = a.legs[0]?.durationInMinutes || Number.MAX_VALUE;
+            const durationB = b.legs[0]?.durationInMinutes || Number.MAX_VALUE;
+            return durationA - durationB;
+          });
+        case 'departure':
+          return flights.sort((a, b) => {
+            const dateStrA = a.legs[0]?.departure;
+            const dateStrB = b.legs[0]?.departure;
+            if (!dateStrA) return 1;
+            if (!dateStrB) return -1;
+            return new Date(dateStrA) - new Date(dateStrB);
+          });
+        default:
+          return flights;
+      }
+    });
+    
+    // Paginated flight list
+    const paginatedFlights = computed(() => {
+      if (!sortedFlights.value || sortedFlights.value.length === 0) {
+        console.log('[DEBUG] No sorted flights available for pagination');
+        return [];
+      }
+      
+      const start = currentPage.value * itemsPerPage.value;
+      const end = start + itemsPerPage.value;
+      
+      const result = sortedFlights.value.slice(start, end);
+      console.log(`[DEBUG] Pagination: ${start+1}~${end} flights displayed (total ${sortedFlights.value.length} flights, ${result.length} on this page, page ${currentPage.value + 1}/${totalPages.value})`);
+      
+      return result;
+    });
+    
+    // Calculate total number of pages
+    const totalPages = computed(() => {
+      if (!sortedFlights.value.length) return 0;
+      const pages = Math.ceil(sortedFlights.value.length / itemsPerPage.value);
+      console.log(`Total pages: ${pages} (${sortedFlights.value.length} flights / ${itemsPerPage.value} per page)`);
+      return pages;
+    });
+    
+    // Calculate page number array (maximum 5 displayed)
+    const pageNumbers = computed(() => {
+      if (totalPages.value <= 5) {
+        return Array.from({ length: totalPages.value }, (_, i) => i);
+      }
+      
+      // Current page is within the first 3 pages
+      if (currentPage.value < 3) {
+        return [0, 1, 2, 3, 4];
+      }
+      
+      // Current page is within the last 3 pages
+      if (currentPage.value > totalPages.value - 4) {
+        return Array.from({ length: 5 }, (_, i) => totalPages.value - 5 + i);
+      }
+      
+      // Current page is in the middle
+      return [
+        currentPage.value - 2,
+        currentPage.value - 1,
+        currentPage.value,
+        currentPage.value + 1,
+        currentPage.value + 2
+      ];
+    });
     
     // Login State
     const isAuthenticated = computed(() => {
@@ -339,41 +661,63 @@ export default {
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     });
     
-    // Airport Search Function
-    const searchOriginAirports = async () => {
+    // Airport Search Function Timers
+    const originSearchTimer = ref(null);
+    const destinationSearchTimer = ref(null);
+    
+    // Airport Search Function (with debounce)
+    const searchOriginAirports = () => {
+      // Clear previous timer
+      if (originSearchTimer.value) {
+        clearTimeout(originSearchTimer.value);
+      }
+      
+      // Reset dropdown if query is too short
       if (originQuery.value.length < 2) {
         originAirports.value = [];
         showOriginDropdown.value = false;
         return;
       }
       
-      try {
-        const response = await searchAirports(originQuery.value);
-        if (response && response.data && response.data.length) {
-          originAirports.value = response.data;
-          showOriginDropdown.value = true;
+      // Set new timer with debounce delay (300ms)
+      originSearchTimer.value = setTimeout(async () => {
+        try {
+          const response = await searchAirports(originQuery.value);
+          if (response && response.data && response.data.length) {
+            originAirports.value = response.data;
+            showOriginDropdown.value = true;
+          }
+        } catch (error) {
+          console.error('Airport Search Error:', error);
         }
-      } catch (error) {
-        console.error('Airport Search Error:', error);
-      }
+      }, 300); // 300ms debounce delay
     };
     
-    const searchDestinationAirports = async () => {
+    const searchDestinationAirports = () => {
+      // Clear previous timer
+      if (destinationSearchTimer.value) {
+        clearTimeout(destinationSearchTimer.value);
+      }
+      
+      // Reset dropdown if query is too short
       if (destinationQuery.value.length < 2) {
         destinationAirports.value = [];
         showDestinationDropdown.value = false;
         return;
       }
       
-      try {
-        const response = await searchAirports(destinationQuery.value);
-        if (response && response.data && response.data.length) {
-          destinationAirports.value = response.data;
-          showDestinationDropdown.value = true;
+      // Set new timer with debounce delay (300ms)
+      destinationSearchTimer.value = setTimeout(async () => {
+        try {
+          const response = await searchAirports(destinationQuery.value);
+          if (response && response.data && response.data.length) {
+            destinationAirports.value = response.data;
+            showDestinationDropdown.value = true;
+          }
+        } catch (error) {
+          console.error('Airport Search Error:', error);
         }
-      } catch (error) {
-        console.error('Airport Search Error:', error);
-      }
+      }, 300); // 300ms debounce delay
     };
     
     // Airport Selection Function
@@ -420,9 +764,133 @@ export default {
         }
         
         const response = await apiSearchFlights(params);
+        
+        // Initial search results save
         flightResults.value = response;
+        
+        console.log('Initial API search response:', response);
+        
+        // Log the full response structure for precise sessionId location
+        console.log('Full response structure:', JSON.stringify(response.data, null, 2));
+        
+        // Check sessionId location in the original SkyScanner API data
+        const rawData = response.data?.rawData || {};
+        console.log('Raw SkyScanner API response:', rawData);
+        
+        // Always save the raw API response to localStorage for debugging
+        localStorage.setItem('flightApiResponse', JSON.stringify(response));
+        
+        // Reset page when searching
+        currentPage.value = 0;
+        
+        // Extract the exact original sessionId provided by SkyScanner
+        const skySessionId = 
+          // Try all possible paths
+          rawData?.context?.sessionId || 
+          rawData?.sessionId || 
+          rawData?.session?.token ||
+          rawData?.flightsSessionId ||
+          response.data?.context?.sessionId || 
+          response.data?.sessionId || 
+          response.data?.token;
+        
+        console.log('Extracted SkyScanner session ID:', skySessionId);
+        
+        // Always try to get complete results if there's a genuine session ID
+        if (skySessionId) {
+          console.log('SkyScanner session ID found, will try to get complete results:', skySessionId);
+          
+          try {
+            // Call getCompleteResults with the correct SkyScanner session ID
+            console.log('Calling getCompleteResults with SkyScanner session ID:', skySessionId);
+            const completeResponse = await getCompleteResults(skySessionId);
+            console.log('Complete response from direct call:', completeResponse);
+            
+            // completeResponse response structure
+            console.log('[DEBUG] Analyzing complete search result response:');
+            console.log('[DEBUG] Response type:', completeResponse.data?.responseType);
+            console.log('[DEBUG] Data structure:', typeof completeResponse.data);
+            
+            if (completeResponse.data?.responseType === 'itineraries' && 
+                completeResponse.data?.itineraries?.length > 0) {
+              
+              const newItinerariesCount = completeResponse.data.itineraries.length;
+              const oldItinerariesCount = flightResults.value.data.itineraries.length;
+              
+              console.log(`[DEBUG] Flight info updated: ${oldItinerariesCount} to ${newItinerariesCount}`);
+              
+              if (newItinerariesCount > oldItinerariesCount) {
+                console.log(`[DEBUG] New flight count (${newItinerariesCount}) is greater than the old count (${oldItinerariesCount})`);
+              } else {
+                console.log(`[DEBUG] New flight count (${newItinerariesCount}) is not greater than the old count (${oldItinerariesCount})`);
+              }
+              
+              // Vue reactivity update
+              const newItineraries = [...completeResponse.data.itineraries];
+              
+              // Logging for comparison
+              console.log('[DEBUG] Comparing first flight IDs:');
+              console.log('[DEBUG] Old first ID:', flightResults.value.data.itineraries[0]?.id);
+              console.log('[DEBUG] New first ID:', newItineraries[0]?.id);
+              
+              // Maintain existing data reference while updating content
+              flightResults.value.data.itineraries.length = 0;
+              flightResults.value.data.itineraries.push(...newItineraries);
+              
+              // Force reactivity update
+              nextTick(() => {
+                console.log('[DEBUG] nextTick executed for UI update');
+              });
+              
+              // Check flight count after update
+              console.log(`[DEBUG] Flight count after update: ${flightResults.value.data.itineraries.length}`);
+              
+              // Debug code for forced UI update
+              currentPage.value = 0; // Reset to first page
+              setTimeout(() => {
+                // Log current flight status after update
+                console.log(`[DEBUG] Current displayed flight count: ${paginatedFlights.value.length}`);
+                console.log(`[DEBUG] Total flight count: ${sortedFlights.value.length}`);
+                
+                // Display alert if no flights are shown
+                if (paginatedFlights.value.length === 0 && sortedFlights.value.length > 0) {
+                  console.error('[DEBUG] No flights are shown on the screen');
+                }
+              }, 100);
+              
+              // Update local storage
+              localStorage.setItem('flightApiResponse', JSON.stringify({
+                data: {
+                  responseType: 'itineraries',
+                  itineraries: newItineraries
+                }
+              }));
+              console.log('[DEBUG] Saved complete flight data to local storage');
+              
+            } else if (completeResponse.data?.responseType === 'error') {
+              // Show a warning but keep initial results
+              console.error('API error from direct call:', completeResponse.data.error);
+              apiLimitReached.value = true;
+              console.warn('Using initial search results due to API error');
+            } else if (completeResponse.data?.responseType === 'use_initial_results') {
+              // SkyScanner API is not available but initial search results are available
+              console.warn('Using initial search results as directed by backend');
+              apiLimitReached.value = true;
+            }
+          } catch (e) {
+            console.error('Error getting complete results from direct call:', e);
+            // Even if an error occurs, continue displaying initial search results
+            apiLimitReached.value = true;
+            console.warn('Using initial search results due to error');
+          }
+        } else {
+          console.warn('No SkyScanner session ID found in the response');
+          apiLimitReached.value = true;
+          
+          // Debugging: Log initial response structure again
+          console.error('Could not find sessionId in API response. Response structure:', response);
+        }
       } catch (error) {
-        console.error('Flight Search Error:', error);
         alert('Flight search error occurred. Please try again.');
       } finally {
         isLoading.value = false;
@@ -440,175 +908,15 @@ export default {
       });
     };
     
-    // Search History Loading
-    const fetchSearchHistory = async () => {
-      if (!isAuthenticated.value) {
-        searchHistory.value = [];
-        return;
-      }
-      
-      try {
-        console.log('?뵇 Login status check:', isAuthenticated.value);
-        console.log('?뵎 Token:', localStorage.getItem('access_token'));
-        
-        const response = await getSearchHistory();
-        console.log('?뱥 Search history response:', response);
-        
-        if (response && response.results) {
-          searchHistory.value = response.results;
-        } else {
-          // No results case - initialize empty array
-          searchHistory.value = [];
+    // View destination details page
+    const viewDestinationDetails = (destination) => {
+      router.push({
+        name: 'FlightDetails',
+        query: {
+          token: flightResults.value.data.token,
+          itineraryId: destination.id
         }
-      } catch (error) {
-        if (error.response && error.response.status === 401) {
-          console.log('?좑툘 Login required');
-          searchHistory.value = [];
-        } else {
-          console.error('??Error loading search history:', error);
-          searchHistory.value = [];
-        }
-      }
-    };
-    
-    // Search History Item Selection
-    const loadSearchHistory = async (history) => {
-      console.log('Search History Loading Started:', history);
-      
-      // Set basic information
-      tripType.value = history.return_date ? 'round' : 'one-way';
-      departDate.value = history.departure_date;
-      returnDate.value = history.return_date;
-      
-      // Search in progress state
-      isLoading.value = true;
-      
-      try {
-        // Extract location name for accurate airport search
-        const extractLocationName = (fullName) => {
-          // "Seoul (all airports) - Korea" -> "Seoul"
-          // "Incheon International Airport - Korea" -> "Incheon International Airport"
-          const match = fullName.match(/^([^(]+?)(?:\s*\(.*\))?\s*-/);
-          return match ? match[1].trim() : fullName;
-        };
-        
-        // Check if it's an airport code (typically 3-4 uppercase letters)
-        const isAirportCode = (code) => {
-          return /^[A-Z]{3,4}$/.test(code);
-        };
-        
-        // Create temporary object for direct airport code input
-        const createAirportObjectFromCode = (code, name) => {
-          return {
-            presentation: {
-              id: code,
-              title: name || code,
-              subtitle: 'Directly entered airport code',
-              suggestionTitle: name || code
-            },
-            navigation: {
-              relevantFlightParams: {
-                skyId: code
-              }
-            }
-          };
-        };
-        
-        // Origin airport search and setup
-        const originIsCode = isAirportCode(history.origin);
-        
-        if (originIsCode) {
-          console.log('Departure is an airport code:', history.origin);
-          // Direct airport code input case - create temporary object
-          originQuery.value = history.origin;
-          selectedOrigin.value = createAirportObjectFromCode(history.origin, history.origin_name || history.origin);
-          console.log('Departure airport object created:', selectedOrigin.value);
-        } else {
-          // Perform general search
-          const originName = extractLocationName(history.origin);
-          originQuery.value = originName;
-          console.log('Origin airport search started:', originName);
-          
-          // Add small delay to ensure input is ready for search
-          await new Promise(resolve => setTimeout(resolve, 300));
-          
-          const originResponse = await searchAirports(originName);
-          console.log('Origin airport search results:', originResponse);
-          
-          if (originResponse && originResponse.data && originResponse.data.length > 0) {
-            console.log('Origin airport selected:', originResponse.data[0]);
-            
-            // Execute internal logic instead of calling the selection function directly
-            const originAirport = originResponse.data[0];
-            originQuery.value = originAirport.presentation.suggestionTitle || history.origin;
-            selectedOrigin.value = originAirport;
-            showOriginDropdown.value = false;
-          } else {
-            console.error('No origin airport search results');
-            originQuery.value = history.origin; // Restore original value
-            // Create temporary object even when no search results
-            selectedOrigin.value = createAirportObjectFromCode(history.origin, history.origin);
-          }
-        }
-        
-        // Add delay between searches
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Destination airport search and setup
-        const destIsCode = isAirportCode(history.destination);
-        
-        if (destIsCode) {
-          console.log('Destination is an airport code:', history.destination);
-          // Direct airport code input case - create temporary object
-          destinationQuery.value = history.destination;
-          selectedDestination.value = createAirportObjectFromCode(history.destination, history.destination_name || history.destination);
-          console.log('Destination airport object directly created:', selectedDestination.value);
-        } else {
-          // Perform general search
-          const destName = extractLocationName(history.destination);
-          destinationQuery.value = destName;
-          console.log('Destination airport search started:', destName);
-          
-          // Add small delay to ensure input is ready for search
-          await new Promise(resolve => setTimeout(resolve, 300));
-          
-          const destResponse = await searchAirports(destName);
-          console.log('Destination airport search results:', destResponse);
-          
-          if (destResponse && destResponse.data && destResponse.data.length > 0) {
-            console.log('Destination airport selected:', destResponse.data[0]);
-            
-            // Execute internal logic instead of calling the selection function directly
-            const destAirport = destResponse.data[0];
-            destinationQuery.value = destAirport.presentation.suggestionTitle || history.destination;
-            selectedDestination.value = destAirport;
-            showDestinationDropdown.value = false;
-          } else {
-            console.error('No destination airport search results');
-            destinationQuery.value = history.destination; // Restore original value
-            // Create temporary object even when no search results
-            selectedDestination.value = createAirportObjectFromCode(history.destination, history.destination);
-          }
-        }
-        
-        console.log('Search settings complete', {
-          departure: selectedOrigin.value,
-          destination: selectedDestination.value,
-          departureDate: departDate.value,
-          returnDate: returnDate.value
-        });
-        
-        // When the search settings are complete, automatically run the search
-        // Only run if both airports are selected
-        if (selectedOrigin.value && selectedDestination.value) {
-          await new Promise(resolve => setTimeout(resolve, 500)); // Wait briefly and then run the search
-          searchFlights();
-        }
-      } catch (error) {
-        console.error('Error occurred while loading search history:', error);
-      } finally {
-        isLoading.value = false;
-      }
+      });
     };
     
     // Formatting functions
@@ -628,7 +936,7 @@ export default {
     
     const getOriginDestinationText = (flight) => {
       const leg = flight.legs[0];
-      return `${leg.origin.city || leg.origin.displayCode} ??${leg.destination.city || leg.destination.displayCode}`;
+      return `${leg.origin.city || leg.origin.displayCode} → ${leg.destination.city || leg.destination.displayCode}`;
     };
     
     const getFlightDateInfo = (flight) => {
@@ -644,8 +952,112 @@ export default {
     
     // When the page loads, load the search history
     onMounted(() => {
-      fetchSearchHistory();
+      // fetchSearchHistory();
     });
+    
+    // Add state variables in setup() function
+    const apiLimitReached = ref(false);
+    
+    // Destination search results pagination related state
+    const destinationPage = ref(0);
+    const destinationsPerPage = ref(9); // Set to 9 for 3x3 grid
+    const sortOption = ref('price'); // Default sorting: lowest price
+    
+    // Destination results sorting function
+    const sortDestinations = (option) => {
+      sortOption.value = option;
+      destinationPage.value = 0; // Go back to the first page when sorting
+    };
+    
+    // Sorted destination results
+    const sortedDestinations = computed(() => {
+      if (!flightResults.value || 
+          !flightResults.value.data || 
+          !flightResults.value.data.countryDestination || 
+          !flightResults.value.data.countryDestination.results) {
+        return [];
+      }
+      
+      const results = [...flightResults.value.data.countryDestination.results];
+      
+      switch (sortOption.value) {
+        case 'price':
+          return results.sort((a, b) => {
+            const priceA = a.content?.flightQuotes?.cheapest?.rawPrice || Number.MAX_VALUE;
+            const priceB = b.content?.flightQuotes?.cheapest?.rawPrice || Number.MAX_VALUE;
+            return priceA - priceB;
+          });
+        case 'priceDesc':
+          return results.sort((a, b) => {
+            const priceA = a.content?.flightQuotes?.cheapest?.rawPrice || 0;
+            const priceB = b.content?.flightQuotes?.cheapest?.rawPrice || 0;
+            return priceB - priceA;
+          });
+        case 'name':
+          return results.sort((a, b) => {
+            const nameA = a.content?.location?.name || '';
+            const nameB = b.content?.location?.name || '';
+            return nameA.localeCompare(nameB);
+          });
+        default:
+          return results;
+      }
+    });
+    
+    // Paginated destination results
+    const paginatedDestinations = computed(() => {
+      const start = destinationPage.value * destinationsPerPage.value;
+      const end = start + destinationsPerPage.value;
+      return sortedDestinations.value.slice(start, end);
+    });
+    
+    // Total destination pages
+    const totalDestinationPages = computed(() => {
+      if (!sortedDestinations.value.length) return 0;
+      return Math.ceil(sortedDestinations.value.length / destinationsPerPage.value);
+    });
+    
+    // Destination page number array (maximum 5 displayed)
+    const destinationPageNumbers = computed(() => {
+      if (totalDestinationPages.value <= 5) {
+        return Array.from({ length: totalDestinationPages.value }, (_, i) => i);
+      }
+      
+      if (destinationPage.value < 3) {
+        return [0, 1, 2, 3, 4];
+      }
+      
+      if (destinationPage.value > totalDestinationPages.value - 4) {
+        return Array.from({ length: 5 }, (_, i) => totalDestinationPages.value - 5 + i);
+      }
+      
+      return [
+        destinationPage.value - 2,
+        destinationPage.value - 1,
+        destinationPage.value,
+        destinationPage.value + 1,
+        destinationPage.value + 2
+      ];
+    });
+    
+    // Pagination methods
+    const goToPage = (page) => {
+      if (page >= 0 && page < totalPages.value) {
+        currentPage.value = page;
+        
+        // Debugging log: Page change
+        console.log(`[DEBUG] Page changed: ${page + 1}/${totalPages.value}, display range: ${page * itemsPerPage.value + 1}-${Math.min((page + 1) * itemsPerPage.value, flightResults.value.data.itineraries.length)}`);
+
+        // Scroll to the top (safely handled)
+        const resultsContainer = document.querySelector('.results-container');
+        if (resultsContainer) {
+          window.scrollTo({
+            top: resultsContainer.offsetTop - 100,
+            behavior: 'smooth'
+          });
+        }
+      }
+    };
     
     return {
       tripType,
@@ -663,7 +1075,6 @@ export default {
       showDestinationDropdown,
       flightResults,
       isLoading,
-      searchHistory,
       today,
       isAuthenticated,
       searchOriginAirports,
@@ -672,39 +1083,113 @@ export default {
       selectDestination,
       searchFlights,
       viewFlightDetails,
-      loadSearchHistory,
+      viewDestinationDetails,
       formatDate,
       formatDuration,
       getOriginDestinationText,
-      getFlightDateInfo
+      getFlightDateInfo,
+      currentPage,
+      itemsPerPage,
+      totalPages,
+      pageNumbers,
+      paginatedFlights,
+      apiLimitReached,
+      destinationPage,
+      destinationsPerPage,
+      sortOption,
+      sortDestinations,
+      paginatedDestinations,
+      totalDestinationPages,
+      destinationPageNumbers,
+      flightSortOption,
+      sortFlights,
+      sortedFlights,
+      goToPage
     };
   }
 };
 </script>
 
 <style scoped>
+:root {
+  --primary-color: #4f46e5;
+  --primary-dark: #4338ca;
+  --primary-light: #818cf8;
+  --gradient-start: #4f46e5;
+  --gradient-end: #6366f1;
+  --button-gradient-start: #f97316; 
+  --button-gradient-end: #fb923c; 
+}
+
+.flight-container {
+  background-image: url('@/assets/flight.jpg');
+  background-size: cover;
+  background-attachment: fixed;
+  background-position: center;
+  min-height: 100vh;
+  padding: 20px;
+  margin: 0;
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .container {
   max-width: 1200px;
 }
 
 h1 {
-  background: linear-gradient(45deg, #3b82f6, #2563eb);
+  background: linear-gradient(45deg, var(--gradient-start), var(--gradient-end));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   margin-top: 1rem;
 }
 
+.gradient-banner {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.8), rgba(99, 102, 241, 0.8), rgba(129, 140, 248, 0.75));
+  box-shadow: 0 10px 25px rgba(79, 70, 229, 0.2);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.banner-container {
+  position: relative;
+  width: 100%;
+}
+
+.banner-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.2);
+  z-index: 1;
+  border-radius: inherit;
+}
+
+.gradient-banner {
+  position: relative;
+  z-index: 2;
+}
+
 .search-form {
-  background-color: white;
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-radius: 1rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   transition: all 0.3s ease;
-  border: 1px solid #f0f0f0;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  width: 100%;
 }
 
 .search-form:hover {
-  box-shadow: 0 10px 30px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
 }
 
 input[type="text"], input[type="date"], input[type="number"], select {
@@ -713,44 +1198,58 @@ input[type="text"], input[type="date"], input[type="number"], select {
   padding: 0.75rem 1rem;
   transition: all 0.2s ease;
   font-size: 1rem;
+  background-color: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
 }
 
 input[type="text"]:focus, input[type="date"]:focus, input[type="number"]:focus, select:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
   outline: none;
 }
 
 .search-button {
-  background: linear-gradient(45deg, #3b82f6, #2563eb);
+  background: linear-gradient(45deg, #3b82f6, #60a5fa);
   border-radius: 0.75rem;
   padding: 0.875rem;
   font-weight: 600;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  color: white;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
 }
 
 .search-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 15px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 6px 15px rgba(59, 130, 246, 0.5);
+  background: linear-gradient(45deg, #2563eb, #3b82f6);
 }
 
 .search-button:disabled {
-  background: #93c5fd;
+  background: linear-gradient(45deg, #93c5fd, #bfdbfe);
   cursor: not-allowed;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .flight-card {
   border-radius: 1rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid rgba(235, 240, 255, 0.7);
+  background-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
   overflow: hidden;
 }
 
 .flight-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  border-color: #bfdbfe;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+  border-color: rgba(200, 224, 255, 0.8);
+}
+
+.card-header {
+  background-color: rgba(240, 249, 255, 0.7);
+  border-bottom: 1px solid rgba(200, 224, 255, 0.5);
 }
 
 .flight-leg {
@@ -759,7 +1258,7 @@ input[type="text"]:focus, input[type="date"]:focus, input[type="number"]:focus, 
 }
 
 .details-button {
-  background: linear-gradient(45deg, #3b82f6, #2563eb);
+  background: var(--primary-color);
   border-radius: 0.75rem;
   font-weight: 600;
   transition: all 0.2s ease;
@@ -767,7 +1266,8 @@ input[type="text"]:focus, input[type="date"]:focus, input[type="number"]:focus, 
 
 .details-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+  background: var(--primary-dark);
 }
 
 .dropdown-menu {
@@ -783,43 +1283,28 @@ input[type="text"]:focus, input[type="date"]:focus, input[type="number"]:focus, 
 }
 
 .dropdown-item:hover {
-  background-color: #f9fafb;
+  background-color: rgba(79, 70, 229, 0.05);
 }
 
-.history-card {
-  border-radius: 0.75rem;
+.price-tag {
+  color: var(--primary-color);
+  font-weight: 700;
+}
+
+.carrier-badge {
+  background-color: #f5f7ff;
   border: 1px solid #e5e7eb;
   transition: all 0.2s ease;
 }
 
-.history-card:hover {
-  background-color: #f0f7ff;
-  border-color: #bfdbfe;
-  transform: translateY(-2px);
-}
-
-.price-tag {
-  color: #2563eb;
-  font-weight: 700;
-}
-
-.airline-logo {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  object-fit: contain;
-  background-color: #f9fafb;
-  padding: 0.25rem;
-  border: 1px solid #e5e7eb;
+.carrier-badge:hover {
+  background-color: #eef2ff;
+  border-color: #c7d2fe;
 }
 
 .flight-duration {
   font-weight: 600;
   color: #4b5563;
-}
-
-.banner-container {
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 
 /* Material Icons animation */
@@ -831,4 +1316,110 @@ input[type="text"]:focus, input[type="date"]:focus, input[type="number"]:focus, 
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+/* Pagination button style */
+.pagination-button {
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.pagination-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-button:not(:disabled):hover {
+  background-color: #f3f4f6;
+}
+
+/* Results summary section */
+.results-summary {
+  background-color: rgba(240, 249, 255, 0.7);
+  border: 1px solid rgba(200, 224, 255, 0.6);
+}
+
+/* Sort buttons */
+.sort-button {
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s ease;
+}
+
+.sort-button:hover {
+  border-color: #c7d2fe;
+}
+
+/* Category buttons */
+.category-button {
+  border-color: #c7d2fe;
+  color: var(--primary-color);
+}
+
+.category-button:hover {
+  background-color: rgba(79, 70, 229, 0.1);
+}
+
+/* Destination cards */
+.destination-card {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(235, 240, 255, 0.7) !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.destination-card:hover {
+  border-color: rgba(200, 224, 255, 0.8) !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Login prompt */
+.login-prompt {
+  background-color: rgba(240, 249, 255, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(200, 224, 255, 0.6);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  width: 100%;
+}
+
+/* Add primary color utility classes */
+.text-primary {
+  color: var(--primary-color);
+}
+
+.bg-primary {
+  background-color: rgba(59, 130, 246, 0.9) !important;
+}
+
+.text-primary-dark {
+  color: var(--primary-dark);
+}
+
+.bg-primary-dark {
+  background-color: var(--primary-dark);
+}
+
+.accent-primary {
+  accent-color: var(--primary-color);
+}
+
+.banner-text {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  letter-spacing: 0.5px;
+  line-height: 1.4;
+}
+
+.results-container {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2) !important;
+  width: 100%;
+}
+
+
 </style> 
+
+

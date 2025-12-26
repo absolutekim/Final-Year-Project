@@ -110,7 +110,11 @@
             placeholder="Share your experience about this destination..." 
             rows="4"
             :disabled="isSubmitting"
+            maxlength="1000"
           ></textarea>
+          <div class="character-counter">
+            {{ editingReview.content.length }} / 1000 characters
+          </div>
         </div>
         
         <!-- Modal action buttons -->
@@ -247,7 +251,6 @@ export default {
         
         this.hasMore = this.reviews.length < response.data.count;
       } catch (error) {
-        console.error('Error loading reviews:', error);
         this.toast.error('Failed to load your reviews.');
       } finally {
         this.isLoading = false;
@@ -266,7 +269,7 @@ export default {
         review.location_city = response.data.city;
         review.location_country = response.data.country;
       } catch (error) {
-        console.error(`Error fetching location info (ID: ${review.location_id}):`, error);
+        // Error fetching location info
       }
     },
     
@@ -290,7 +293,6 @@ export default {
         this.reviews = [...this.reviews, ...response.data.results];
         this.hasMore = this.reviews.length < response.data.count;
       } catch (error) {
-        console.error('Error loading additional reviews:', error);
         this.toast.error('Failed to load more reviews.');
       } finally {
         this.isLoadingMore = false;
@@ -345,12 +347,6 @@ export default {
       this.isSubmitting = true;
       
       try {
-        // Find the current review
-        const currentReview = this.reviews.find(r => r.id === this.editingReview.id);
-        
-        console.log('Current review object:', JSON.stringify(currentReview, null, 2));
-        console.log('All keys in review object:', Object.keys(currentReview));
-        
         // Prepare review data - only send rating and content
         const requestData = {
           rating: this.editingReview.rating,
@@ -377,10 +373,6 @@ export default {
         this.toast.success('Review updated successfully.');
         this.closeEditModal();
       } catch (error) {
-        console.error('Error updating review:', error);
-        if (error.response) {
-          console.error('Error response data:', error.response.data);
-        }
         this.toast.error('Failed to update review.');
       } finally {
         this.isSubmitting = false;
@@ -407,7 +399,6 @@ export default {
         this.reviews = this.reviews.filter(review => review.id !== reviewId);
         this.toast.success('Review deleted successfully.');
       } catch (error) {
-        console.error('Error deleting review:', error);
         this.toast.error('Failed to delete review.');
       }
     },
@@ -419,7 +410,7 @@ export default {
      */
     formatDate(dateString) {
       const date = new Date(dateString);
-      return date.toLocaleDateString('ko-KR', {
+      return date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
         day: 'numeric'
@@ -827,6 +818,14 @@ textarea:focus {
 textarea:disabled {
   background-color: #f7fafc;
   cursor: not-allowed;
+}
+
+/* Character counter style */
+.character-counter {
+  font-size: 12px;
+  color: #718096;
+  text-align: right;
+  margin-top: 4px;
 }
 
 /* Modal actions container */

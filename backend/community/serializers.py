@@ -13,7 +13,13 @@ class PostSerializer(serializers.ModelSerializer):
     """
     author_id = serializers.ReadOnlyField(source='author.id')  # Return author_id 
     author = serializers.ReadOnlyField(source='author.username')  # Return username
-    author_profile_image = serializers.SerializerMethodField()  # 프로필 이미지 필드 추가
+    author_profile_image = serializers.SerializerMethodField()  # Add profile image field
+    title = serializers.CharField(max_length=255, error_messages={
+        'max_length': 'Title cannot exceed 255 characters.'
+    })
+    content = serializers.CharField(max_length=3000, error_messages={
+        'max_length': 'Post content cannot exceed 3000 characters.'
+    })
 
     class Meta:
         model = Post
@@ -21,11 +27,11 @@ class PostSerializer(serializers.ModelSerializer):
 
     def get_author_profile_image(self, obj):
         """
-        사용자의 프로필 이미지 URL을 가져옵니다.
+        Get the user's profile image URL.
         """
         from mypage.models import UserProfile
         try:
-            # 사용자 프로필 정보 조회
+            # Get user profile information
             profile = UserProfile.objects.get(user=obj.author)
             return profile.profile_image.url if profile.profile_image else None
         except UserProfile.DoesNotExist:
@@ -40,7 +46,10 @@ class CommentSerializer(serializers.ModelSerializer):
     """
     author_id = serializers.ReadOnlyField(source='author.id')  # Author ID field
     author = serializers.ReadOnlyField(source='author.username')  # Author field is read-only
-    author_profile_image = serializers.SerializerMethodField()  # 프로필 이미지 필드 추가
+    author_profile_image = serializers.SerializerMethodField()  # profile image field
+    content = serializers.CharField(max_length=500, error_messages={
+        'max_length': '댓글 내용은 500자를 초과할 수 없습니다.'
+    })
 
     class Meta:
         model = Comment
@@ -49,11 +58,11 @@ class CommentSerializer(serializers.ModelSerializer):
         
     def get_author_profile_image(self, obj):
         """
-        사용자의 프로필 이미지 URL을 가져옵니다.
+        Get the user's profile image URL.
         """
         from mypage.models import UserProfile
         try:
-            # 사용자 프로필 정보 조회
+            # Get user profile information
             profile = UserProfile.objects.get(user=obj.author)
             return profile.profile_image.url if profile.profile_image else None
         except UserProfile.DoesNotExist:

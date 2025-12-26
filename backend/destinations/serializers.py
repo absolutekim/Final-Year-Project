@@ -69,13 +69,21 @@ class ReviewSerializer(serializers.ModelSerializer):
     Includes sentiment analysis and provides related location and user information.
     Prevents users from submitting multiple reviews for the same location.
     """
-    location_id = serializers.IntegerField(write_only=True)
+    location_id = serializers.IntegerField(write_only=True, required=True)
     location_name = serializers.SerializerMethodField()
     username = serializers.SerializerMethodField()
+    keywords = serializers.JSONField(required=False)
+    author_id = serializers.ReadOnlyField(source='user.id')
+    author_profile_image = serializers.SerializerMethodField()
+    content = serializers.CharField(max_length=1000, error_messages={
+        'max_length': 'Review content cannot exceed 1000 characters.'
+    })
     
     class Meta:
         model = Review
-        fields = ['id', 'user', 'location', 'location_id', 'location_name', 'username', 'rating', 'content', 'sentiment', 'created_at', 'updated_at']
+        fields = ['id', 'user', 'author_id', 'location', 'location_id', 'location_name', 
+                 'username', 'author_profile_image', 'rating', 'content', 'sentiment', 
+                 'keywords', 'created_at', 'updated_at']
         read_only_fields = ['user', 'location', 'sentiment', 'created_at', 'updated_at']
     
     def get_location_name(self, obj):
@@ -102,6 +110,24 @@ class ReviewSerializer(serializers.ModelSerializer):
         """
         return obj.user.username if obj.user else None
     
+    def get_author_profile_image(self, obj):
+        """
+        Get the profile image URL of the review author.
+        
+        Parameters:
+            obj: Review instance
+            
+        Returns:
+            str: URL to the author's profile image or None if not available
+        """
+        from mypage.models import UserProfile
+        try:
+            # Get user profile information
+            profile = UserProfile.objects.get(user=obj.user)
+            return profile.profile_image.url if profile.profile_image else None
+        except UserProfile.DoesNotExist:
+            return None
+    
     def create(self, validated_data):
         """
         Create a new review.
@@ -119,13 +145,18 @@ class ReviewSerializer(serializers.ModelSerializer):
             ValidationError: If location doesn't exist or user already reviewed this location
         """
         print("ReviewSerializer.create called:", validated_data)
+        
+        # if location_id is not in validated_data, raise an error
+        if 'location_id' not in validated_data:
+            raise serializers.ValidationError({"location_id": ["This field is required."]})
+            
         location_id = validated_data.pop('location_id')
         user = self.context['request'].user
         
         try:
             location = Location.objects.get(id=location_id)
         except Location.DoesNotExist:
-            raise serializers.ValidationError({"location_id": "Location does not exist."})
+            raise serializers.ValidationError({"location_id": ["Location does not exist."]})
         
         # Check if review already exists
         existing_review = Review.objects.filter(user=user, location=location).first()

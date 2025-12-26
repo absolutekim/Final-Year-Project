@@ -75,14 +75,7 @@ export default {
         this.$router.push('/');
         
       } catch (error) {
-        console.error("Login failed:", error);
         this.errorMessage = "Invalid username or password. Please try again.";
-
-        // Log detailed error information for debugging
-        if (error.response) {
-          console.error("Server response status:", error.response.status);
-          console.error("Server response data:", error.response.data);
-        }
       }
     }
   }

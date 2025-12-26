@@ -4,6 +4,7 @@
     <!-- Registration form card box -->
     <div class="register-box">
       <h2>Create Account</h2>
+      <h4>Signing up on our website constitutes your agreement to our collection of personal and usage data.</h4>
       <!-- User registration form -->
       <form @submit.prevent="register" class="register-form">
         <div class="form-group">
@@ -29,6 +30,9 @@
         <div class="form-group">
           <label>Confirm Password</label>
           <input type="password" v-model="form.password2" required placeholder="Confirm your password" />
+          <div v-if="form.password2 && !passwordsMatch" class="input-error">
+            Passwords do not match!
+          </div>
         </div>
 
         <div class="form-group gender-group">
@@ -62,29 +66,12 @@
 
         <!-- Tag selection component -->
         <TagChoose v-model="form.selected_tags" />
-        
-        <!-- Debug information panel (toggleable) -->
-        <div class="debug-info" v-if="showDebug">
-          <p>Selected tags count: {{ form.selected_tags.length }}</p>
-          <p>Selected tags: {{ form.selected_tags.join(', ') }}</p>
-          <p>Form validity: {{ isFormValid ? 'Valid' : 'Invalid' }}</p>
-          <p>Username: {{ !!form.username }}</p>
-          <p>Email: {{ !!form.email }}</p>
-          <p>Nickname: {{ !!form.nickname }}</p>
-          <p>Password: {{ !!form.password }}</p>
-          <p>Password2: {{ !!form.password2 }}</p>
-          <p>Gender: {{ !!form.gender }}</p>
-          <p>Age Group: {{ !!form.age_group }}</p>
-          <p>Tags Valid: {{ form.selected_tags.length >= 3 && form.selected_tags.length <= 7 }}</p>
-        </div>
 
         <!-- Form submission button -->
         <button type="submit" class="submit-btn" :disabled="!isFormValid">Create Account</button>
-        <!-- Debug toggle button -->
-        <button type="button" class="debug-btn" @click="toggleDebug">{{ showDebug ? 'Hide' : 'Show' }} Debug Info</button>
       </form>
       <!-- Success/Error message display -->
-      <p v-if="message" :class="['message', message.includes('failed') ? 'error' : 'success']">{{ message }}</p>
+      <p v-if="message" :class="['message', message.includes('registered successfully') ? 'success' : 'error']">{{ message }}</p>
     </div>
   </div>
 </template>
@@ -101,7 +88,6 @@ import TagChoose from '@/components/TagChoose.vue';
  * - Gender selection
  * - Interest tag selection with min/max validation
  * - Form validation with real-time feedback
- * - Debug mode for development
  */
 export default {
   components: {
@@ -119,8 +105,7 @@ export default {
         age_group: '', // Age group selection
         selected_tags: [] // Array of selected interest tags
       },
-      message: '', // Success/Error message
-      showDebug: false // Debug information panel toggle
+      message: '' // Success/Error message
     };
   },
   mounted() {
@@ -128,7 +113,6 @@ export default {
     if (!Array.isArray(this.form.selected_tags)) {
       this.form.selected_tags = [];
     }
-    console.log('RegisterView mounted, selected_tags:', this.form.selected_tags);
   },
   computed: {
     /**
@@ -146,23 +130,13 @@ export default {
       const hasGender = !!this.form.gender;
       const hasAgeGroup = !!this.form.age_group;
       
+      // Check if passwords match
+      const passwordsMatch = this.form.password === this.form.password2;
+      
       // Validate tag selection count (3-7 tags required)
       const hasValidTags = Array.isArray(this.form.selected_tags) && 
                           this.form.selected_tags.length >= 3 && 
                           this.form.selected_tags.length <= 7;
-      
-      // Debug logging for form validation
-      console.log('Form validation:', {
-        hasUsername,
-        hasEmail,
-        hasNickname,
-        hasPassword,
-        hasPassword2,
-        hasGender,
-        hasAgeGroup,
-        selectedTagsLength: this.form.selected_tags?.length || 0,
-        hasValidTags
-      });
       
       // All conditions must be true for form to be valid
       return hasUsername && 
@@ -170,19 +144,21 @@ export default {
              hasNickname && 
              hasPassword && 
              hasPassword2 && 
+             passwordsMatch &&
              hasGender && 
              hasAgeGroup && 
              hasValidTags;
+    },
+    
+    /**
+     * Check if passwords match
+     * @returns {boolean} True if passwords match or if second password is empty
+     */
+    passwordsMatch() {
+      return this.form.password === this.form.password2;
     }
   },
   methods: {
-    /**
-     * Toggle debug information panel visibility
-     */
-    toggleDebug() {
-      this.showDebug = !this.showDebug;
-    },
-    
     /**
      * Submit registration form
      * Validates tag selection and sends registration request to API
@@ -199,8 +175,6 @@ export default {
           return;
         }
         
-        console.log('Registration attempt:', this.form);
-        
         const response = await axios.post('/api/accounts/register/', this.form);
         this.message = response.data.message;
         
@@ -210,10 +184,45 @@ export default {
           }, 1500);
         }
       } catch (error) {
-        console.error('Registration failed:', error.response?.data || error);
-        this.message = error.response?.data?.selected_tags || 
-                       error.response?.data?.message || 
-                       'Registration failed.';
+        // Handle detailed error messages from the server
+        if (error.response?.data) {
+          const errorData = error.response.data;
+          
+          // Check for field-specific errors (username, email, nickname, etc.)
+          if (typeof errorData === 'object' && !Array.isArray(errorData)) {
+            // Extract first error message from each field
+            const errorMessages = [];
+            
+            for (const field in errorData) {
+              if (Array.isArray(errorData[field])) {
+                errorMessages.push(`${field}: ${errorData[field][0]}`);
+              } else if (typeof errorData[field] === 'string') {
+                errorMessages.push(`${field}: ${errorData[field]}`);
+              }
+            }
+            
+            if (errorMessages.length > 0) {
+              this.message = errorMessages.join('\n');
+              return;
+            }
+          }
+          
+          // Handle specific error message formats
+          if (errorData.selected_tags) {
+            this.message = errorData.selected_tags;
+          } else if (errorData.message) {
+            this.message = errorData.message;
+          } else if (errorData.error) {
+            this.message = errorData.error;
+          } else if (errorData.detail) {
+            this.message = errorData.detail;
+          }
+        }
+        
+        // Default error message if no specific error is found
+        if (!this.message) {
+          this.message = 'Registration failed. Please try again.';
+        }
       }
     }
   }
@@ -342,40 +351,15 @@ select.form-select:focus {
   cursor: not-allowed;
 }
 
-/* Debug toggle button styling */
-.debug-btn {
-  background: #e2e8f0;
-  color: #4a5568;
-  padding: 8px;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  margin-top: 10px;
-  cursor: pointer;
-}
-
-/* Debug information panel styling */
-.debug-info {
-  background: #f7fafc;
-  padding: 15px;
-  border-radius: 6px;
-  font-size: 14px;
-  margin-top: 10px;
-  border: 1px solid #e2e8f0;
-}
-
-/* Debug information paragraph spacing */
-.debug-info p {
-  margin: 5px 0;
-}
-
 /* Message styling (success/error) */
 .message {
   margin-top: 20px;
   padding: 12px;
   border-radius: 6px;
-  text-align: center;
+  text-align: left;
   font-size: 14px;
+  white-space: pre-line;
+  word-break: break-word;
 }
 
 /* Error message styling */
@@ -388,6 +372,13 @@ select.form-select:focus {
 .success {
   background: #c6f6d5;
   color: #2f855a;
+}
+
+/* Input error message styling */
+.input-error {
+  color: #c53030;
+  font-size: 12px;
+  margin-top: 4px;
 }
 
 /* Responsive design for mobile screens */

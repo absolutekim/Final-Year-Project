@@ -20,11 +20,20 @@
         <!-- Review header with user info and actions -->
         <div class="review-header">
           <div class="user-info">
-            <span class="username">{{ review.user.username }}</span>
-            <div class="rating">
-              <span v-for="star in 5" :key="star" class="star" :class="{ 'filled': star <= review.rating }">
-                <i class="fas fa-star"></i>
-              </span>
+            <!-- Add profile image -->
+            <div class="user-avatar">
+              <img v-if="review.author_profile_image" :src="review.author_profile_image" alt="User avatar">
+              <div v-else class="default-avatar">
+                <i class="fas fa-user"></i>
+              </div>
+            </div>
+            <div class="user-details">
+              <span class="username">{{ review.username }}</span>
+              <div class="rating">
+                <span v-for="star in 5" :key="star" class="star" :class="{ 'filled': star <= review.rating }">
+                  <i class="fas fa-star"></i>
+                </span>
+              </div>
             </div>
           </div>
           <div class="review-meta">
@@ -98,13 +107,6 @@ export default {
     const toast = useToast();
     return { toast };
   },
-  computed: {
-    currentUserId() {
-      // Get user ID from local storage - this is a simplified implementation
-      // In a real app, would retrieve user information from authentication state
-      return null;
-    }
-  },
   mounted() {
     this.fetchReviews();
   },
@@ -120,6 +122,8 @@ export default {
         const response = await axios.get(`http://localhost:8000/api/destinations/${this.locationId}/reviews/`);
         this.reviews = response.data.results;
         this.hasMoreReviews = this.reviews.length < response.data.count;
+        // Emit event with reviews data to parent component
+        this.$emit('reviews-loaded', this.reviews);
       } catch (error) {
         console.error('Error loading review list:', error);
         this.toast.error('An error occurred while loading reviews.');
@@ -160,7 +164,7 @@ export default {
      */
     formatDate(dateString) {
       const date = new Date(dateString);
-      return date.toLocaleDateString('ko-KR', {
+      return date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
         day: 'numeric'
@@ -173,7 +177,31 @@ export default {
      * @returns {boolean} True if the review belongs to the current user
      */
     isCurrentUserReview(review) {
-      return this.currentUserId && review.user.id === this.currentUserId;
+      // Get the ID of the currently logged in user
+      const userId = this.getUserId();
+      // Compare using author_id
+      return userId && review.author_id === userId;
+    },
+    
+    /**
+     * Get current user ID from localStorage token
+     * @returns {number|null} User ID or null if not logged in
+     */
+    getUserId() {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (!token) return null;
+        
+        // Decode JWT token content (second part is payload)
+        const payload = token.split('.')[1];
+        const decoded = JSON.parse(atob(payload));
+        
+        // Return user_id if it exists
+        return decoded.user_id || null;
+      } catch (error) {
+        console.error('Error getting user ID:', error);
+        return null;
+      }
     },
     
     /**
@@ -313,20 +341,56 @@ export default {
 .review-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 15px;
+  align-items: flex-start;
+  margin-bottom: 12px;
 }
 
-/* User information section */
+/* User info section */
 .user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* User avatar container */
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+/* User avatar image */
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Default avatar when no image is available */
+.default-avatar {
+  width: 100%;
+  height: 100%;
+  background-color: #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+}
+
+/* User details container */
+.user-details {
   display: flex;
   flex-direction: column;
 }
 
-/* Username display */
+/* Username styling */
 .username {
   font-weight: 600;
-  color: #2d3748;
-  margin-bottom: 5px;
+  color: #333;
+  margin-bottom: 4px;
 }
 
 /* Star rating display */
@@ -343,18 +407,18 @@ export default {
   color: #f6ad55;
 }
 
-/* Review metadata section */
+/* Review metadata container */
 .review-meta {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  gap: 8px;
 }
 
 /* Date display */
 .date {
-  font-size: 12px;
-  color: #718096;
-  margin-bottom: 5px;
+  color: #666;
+  font-size: 0.85rem;
 }
 
 /* Review actions container */

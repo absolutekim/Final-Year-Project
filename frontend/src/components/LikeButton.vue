@@ -47,7 +47,6 @@ export default {
     initialLiked: {
       immediate: true,
       handler(newValue) {
-        console.log('initialLiked changed:', newValue);
         this.isLiked = newValue;
       }
     }

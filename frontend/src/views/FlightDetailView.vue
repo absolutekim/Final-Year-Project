@@ -1,263 +1,476 @@
 <template>
-  <div class="container mx-auto p-4">
-    <div class="flex flex-wrap items-center justify-between mb-6">       
-      <div class="flex items-center">
-        <button @click="goBack" class="back-button mr-4">
-          <i class="material-icons mr-1">arrow_back</i>
-          Back to Search Results
-        </button>
-        <h1 class="text-2xl font-semibold page-title">Flight Details</h1>
-      </div>
-    </div>
-
-    <div v-if="isLoading" class="loading-spinner">
-      <i class="material-icons">sync</i>
-    </div>
-
-    <div v-else-if="error" class="error-message mb-6">
-      <div class="font-medium mb-1">An error occurred</div>
-      <div>{{ error }}</div>
-    </div>
-
-    <div v-else-if="flightDetails" class="card">
-      <!-- Flight Summary Information -->
-      <div class="card-header">
-        <div class="flex flex-wrap justify-between items-center">
-          <div>
-            <div class="flight-code">
-              {{ getAirportCodes(flightDetails.itinerary.legs[0]) }}
-            </div>
-            <div class="route-name">
-              {{ getOriginToDestination(flightDetails.itinerary.legs[0]) }}
-            </div>
-          </div>
-          <div class="text-right">
-            <div class="price-display">
-              {{ getPriceInfo(flightDetails.itinerary.pricingOptions) }}
-            </div>
-            <div>Total Price</div>
-          </div>
+  <div class="flight-detail-container">
+    <div class="container mx-auto p-4">
+      <div class="flex flex-wrap items-center justify-between mb-6">       
+        <div class="flex items-center">
+          <button @click="goBack" class="back-button mr-4">
+            <i class="material-icons mr-1">arrow_back</i>
+            Back to Search Results
+          </button>
+          <h1 class="text-2xl font-semibold page-title">Flight Details</h1>
         </div>
       </div>
 
-      <!-- Destination Images -->
-      <div class="destination-images grid grid-cols-3 gap-0.5 mt-0.5">
-        <div v-for="(image, index) in destinationImages" :key="index" class="destination-image-container relative">
-          <img :src="image.url" :alt="image.alt" class="w-full h-32 object-cover" />
-          <div v-if="index === 0" class="absolute bottom-0 left-0 w-full p-2 bg-gradient-to-t from-black/70 to-transparent">
-            <div class="text-white text-sm font-medium">{{ getDestinationName() }} Visit</div>
-          </div>
-        </div>
+      <div v-if="loading" class="loading-spinner">
+        <i class="material-icons">sync</i>
       </div>
 
-      <!-- Flight Details Information -->
-      <div class="p-6">
-        <div v-for="(leg, legIndex) in flightDetails.itinerary.legs" :key="leg.id" class="flight-section">
-          <div class="section-title">
-            <i class="material-icons mr-2">{{ legIndex === 0 ? 'flight_takeoff' : 'flight_land' }}</i>   
-            {{ legIndex === 0 ? 'Departure Flight' : 'Return Flight' }}
-            <div class="ml-auto text-sm font-normal text-gray-500">
-              {{ formatDuration(leg.durationMinutes) }} |
-              <span v-if="leg.stopCount === 0" class="text-green-600 font-medium">Direct</span>
-              <span v-else class="text-orange-500 font-medium">{{ leg.stopCount }} stops</span>
+      <div v-else-if="error" class="error-message mb-6">
+        <div class="font-medium mb-1">An error occurred</div>
+        <div>{{ error }}</div>
+      </div>
+
+      <!-- Destination Information (For countryDestination results) -->
+      <div v-else-if="flightDetails && flightDetails.destinationInfo" class="card">
+        <!-- Destination Summary Information -->
+        <div class="card-header">
+          <div class="flex flex-wrap justify-between items-center">
+            <div>
+              <div class="flight-code">
+                {{ getAirportCodes(flightDetails.itinerary.legs[0]) }}
+              </div>
+              <div class="route-name">
+                {{ getOriginToDestination(flightDetails.itinerary.legs[0]) }}
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="price-display">
+                {{ getPriceInfo(flightDetails.itinerary.pricingOptions) }}
+              </div>
+              <div>Total Price</div>
             </div>
           </div>
+        </div>
 
-          <!-- Segment Information (Each Flight) -->
-          <div v-for="(segment, index) in leg.segments" :key="segment.id" class="mb-6">
-            <div class="segment-card">
-              <div class="flex items-start gap-4 mb-4">
-                <div class="flex-none">
-                  <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                    <img
-                      v-if="segment.marketingCarrier && segment.marketingCarrier.logo"
-                      :src="segment.marketingCarrier.logo"
-                      :alt="segment.marketingCarrier?.name || 'Airline Information'"
-                      class="airline-logo"
-                    >
-                    <span v-else class="text-3xl text-gray-400">아이콘</span>
+        <!-- Destination Image -->
+        <div v-if="flightDetails.destinationInfo && flightDetails.destinationInfo.image" class="w-full">
+          <img :src="flightDetails.destinationInfo.image" :alt="getDestinationName()" class="w-full h-64 object-cover">
+        </div>
+        <div v-else class="destination-images grid grid-cols-3 gap-0.5 mt-0.5">
+          <div v-for="(image, index) in destinationImages" :key="index" class="destination-image-container relative">
+            <img :src="image.url" :alt="image.alt" class="w-full h-32 object-cover" />
+            <div v-if="index === 0" class="absolute bottom-0 left-0 w-full p-2 bg-gradient-to-t from-black/70 to-transparent">
+              <div class="text-white text-sm font-medium">{{ getDestinationName() }} Visit</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Destination Details Information -->
+        <div class="p-6">
+          <!-- Generic Flight Details (Same structure as normal itineraries) -->
+          <div v-for="(leg, legIndex) in flightDetails.itinerary.legs" :key="leg.id" class="flight-section">
+            <div class="section-title">
+              <i class="material-icons mr-2">{{ legIndex === 0 ? 'flight_takeoff' : 'flight_land' }}</i>   
+              {{ legIndex === 0 ? 'Departure Flight' : 'Return Flight' }}
+              <div class="ml-auto text-sm font-normal text-gray-500">
+                {{ formatDuration(leg.durationMinutes) }} |
+                <span v-if="leg.stopCount === 0" class="text-green-600 font-medium">Direct</span>
+                <span v-else class="text-orange-500 font-medium">{{ leg.stopCount }} Stop</span>
+              </div>
+            </div>
+
+            <!-- Segment Information (Each Flight) -->
+            <div v-for="(segment) in leg.segments" :key="segment.id" class="mb-6">
+              <div class="segment-card">
+                <div class="flex items-start gap-4 mb-4">
+                  <div class="flex-none">
+                    <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                      <img
+                        v-if="segment.marketingCarrier && segment.marketingCarrier.logo"
+                        :src="segment.marketingCarrier.logo"
+                        :alt="segment.marketingCarrier?.name || 'Airline Info'"
+                        class="airline-logo"
+                      >
+                      <span v-else class="text-3xl text-gray-400">Icon</span>
+                    </div>
+                  </div>
+                  <div class="flex-grow">
+                    <div class="font-medium text-lg">{{ segment.marketingCarrier?.name || 'No Airline Info' }}</div>
+                    <div class="text-sm text-gray-500">
+                      Flight Number: {{ segment.marketingCarrier?.displayCode || '?' }}{{ segment.flightNumber || '?' }}
+                      <span v-if="segment.marketingCarrier && segment.operatingCarrier && segment.marketingCarrier.id !== segment.operatingCarrier.id">
+                        (Operating: {{ segment.operatingCarrier.name }})
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <div class="flex-grow">
-                  <div class="font-medium text-lg">{{ segment.marketingCarrier?.name || 'Airline information not available' }}</div>
-                  <div class="text-sm text-gray-500">
-                    Flight Number: {{ segment.marketingCarrier?.displayCode || '?' }}{{ segment.flightNumber || '?' }}
-                    <span v-if="segment.marketingCarrier && segment.operatingCarrier && segment.marketingCarrier.id !== segment.operatingCarrier.id">
-                      (Operated by: {{ segment.operatingCarrier.name }})
+
+                <div class="grid grid-cols-1 md:grid-cols-10 gap-4 mt-6">
+                  <!-- Departure Information -->
+                  <div class="md:col-span-4">
+                    <div class="time-display mb-1">{{ formatTime(segment.departure) }}</div>
+                    <div class="airport-code">{{ segment.origin?.airport?.displayCode || '?' }}</div>      
+                    <div class="airport-name text-sm mb-1">{{ segment.origin?.airport?.name || 'No Airport Info' }}</div>
+                    <div class="date-display text-sm">{{ formatDate(segment.departure) }}</div>
+                  </div>
+
+                  <!-- Flight Duration -->
+                  <div class="md:col-span-2 flex flex-col items-center justify-center">
+                    <div class="flight-duration-text mb-2">{{ formatDuration(segment.durationMinutes) }}</div>
+                    <div class="w-full relative">
+                      <div class="flight-duration-bar w-full"></div>
+                      <div class="plane-icon absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                        <i class="material-icons text-blue-600">flight</i>
+                      </div>
+                    </div>
+                    <div class="flight-duration-text mt-2">
+                      <span v-if="segment.durationMinutes <= 120" class="text-green-600">Short</span>
+                      <span v-else-if="segment.durationMinutes <= 360" class="text-orange-500">Medium</span>
+                      <span v-else class="text-red-500">Long</span>
+                    </div>
+                  </div>
+
+                  <!-- Arrival Information -->
+                  <div class="md:col-span-4 text-right">
+                    <div class="time-display mb-1">{{ formatTime(segment.arrival) }}</div>
+                    <div class="airport-code">{{ segment.destination?.airport?.displayCode || '?' }}</div> 
+                    <div class="airport-name text-sm mb-1">{{ segment.destination?.airport?.name || 'No Airport Info' }}</div>
+                    <div class="date-display text-sm">
+                      {{ formatDate(segment.arrival) }}
+                      <span v-if="segment.dayChange" class="day-change ml-1">(+{{ segment.dayChange }} days)</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Destination Specific Information Section -->
+          <div v-if="flightDetails.destinationInfo" class="destination-info-section">
+            <div class="section-title flex items-center">
+              <i class="material-icons mr-2 text-blue-600">travel_explore</i>
+              Destination Information
+            </div>
+
+            <!-- Location Information -->
+            <div class="p-4 bg-blue-50 rounded-lg mb-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div class="text-sm text-gray-500">Location Type</div>
+                  <div class="font-medium">{{ flightDetails.destinationInfo.location?.type || 'No Info' }}</div>
+                </div>
+                <div v-if="flightDetails.destinationInfo.location?.iata">
+                  <div class="text-sm text-gray-500">Airport Code</div>
+                  <div class="font-medium">{{ flightDetails.destinationInfo.location.iata }}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Flight Quotes Information -->
+            <div v-if="flightDetails.destinationInfo.flightQuotes" class="mb-6">
+              <div class="section-title text-lg mb-2">Flight Price</div>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Cheapest Flight Option -->
+                <div v-if="flightDetails.destinationInfo.flightQuotes.cheapest" 
+                     class="p-4 border border-blue-100 rounded-lg bg-blue-50">
+                  <div class="flex items-start">
+                    <i class="material-icons text-blue-600 mr-3">savings</i>
+                    <div>
+                      <h3 class="font-medium mb-1">Cheapest Flight</h3>
+                      <p class="text-xl font-bold text-blue-700">
+                        {{ flightDetails.destinationInfo.flightQuotes.cheapest.price }}
+                      </p>
+                      <p class="text-sm mt-1">
+                        <span v-if="flightDetails.destinationInfo.flightQuotes.cheapest.direct" 
+                              class="inline-block px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs">
+                          Direct
+                        </span>
+                        <span v-else class="inline-block px-2 py-0.5 bg-orange-100 text-orange-800 rounded-full text-xs">
+                          Stop
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Direct Flight Option -->
+                <div v-if="flightDetails.destinationInfo.flightQuotes.direct" 
+                     class="p-4 border border-green-100 rounded-lg bg-green-50">
+                  <div class="flex items-start">
+                    <i class="material-icons text-green-600 mr-3">flight</i>
+                    <div>
+                      <h3 class="font-medium mb-1">Direct Flight</h3>
+                      <p class="text-xl font-bold text-green-700">
+                        {{ flightDetails.destinationInfo.flightQuotes.direct.price }}
+                      </p>
+                      <p class="text-sm mt-1">
+                        <span class="inline-block px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs">
+                          Direct
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Hotel Price Information -->
+            <div v-if="flightDetails.destinationInfo.hotelPrice" class="mb-6">
+              <div class="section-title text-lg mb-2">Hotel Information</div>
+              <div class="p-4 border border-indigo-100 rounded-lg bg-indigo-50">
+                <div class="flex items-start">
+                  <i class="material-icons text-indigo-600 mr-3">hotel</i>
+                  <div>
+                    <h3 class="font-medium mb-1">Average Hotel Price</h3>
+                    <p class="text-xl font-bold text-indigo-700">
+                      {{ flightDetails.destinationInfo.hotelPrice }}
+                    </p>
+                    <p class="text-sm text-indigo-600 mt-1">1 night basis</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Booking Button -->
+          <div v-if="flightDetails.itinerary.pricingOptions && flightDetails.itinerary.pricingOptions.length" class="booking-section">
+            <div class="booking-title flex items-center">
+              <i class="material-icons mr-2 text-blue-600">shopping_cart</i>
+              Booking Options
+            </div>
+
+            <div v-for="(option) in flightDetails.itinerary.pricingOptions" :key="option.id || option.deepLink" class="booking-option">
+              <div class="flex flex-wrap justify-between items-center mb-3">
+                <div>
+                  <div class="font-medium text-lg">
+                    {{ option.pricingItems && option.pricingItems[0]?.agent?.name || 'Unknown Provider' }} 
+                  </div>
+
+                  <div v-if="option.pricingItems && option.pricingItems[0]?.agent?.rating" class="flex items-center mt-1">
+                    <div class="flex">
+                      <i v-for="i in 5" :key="i" class="material-icons text-sm mr-0.5" :class="i <= Math.round(option.pricingItems[0].agent.rating.value) ? 'star-rating' : 'empty-star'">
+                        star
+                      </i>
+                    </div>
+                    <span class="text-sm text-gray-500 ml-1">
+                      {{ option.pricingItems[0].agent.rating.value.toFixed(1) }} ({{ option.pricingItems[0].agent.rating.count }} reviews)
                     </span>
                   </div>
                 </div>
+
+                <div class="booking-price">
+                  {{ formatPriceOption(option) }}
+                </div>
               </div>
 
-              <div class="grid grid-cols-1 md:grid-cols-10 gap-4 mt-6">
-                <!-- Departure Information -->
-                <div class="md:col-span-4">
-                  <div class="time-display mb-1">{{ formatTime(segment.departure) }}</div>
-                  <div class="airport-code">{{ segment.origin?.airport?.displayCode || '?' }}</div>      
-                  <div class="airport-name text-sm mb-1">{{ segment.origin?.airport?.name || 'Airport information not available' }}</div>
-                  <div class="date-display text-sm">{{ formatDate(segment.departure) }}</div>
-                </div>
+              <a
+                v-if="option.pricingItems && option.pricingItems[0]?.uri"
+                :href="option.pricingItems[0].uri"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="booking-button"
+              >
+                <i class="material-icons mr-1 align-middle text-sm">open_in_new</i>
+                Book Now
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
 
-                <!-- Flight Duration -->
-                <div class="md:col-span-2 flex flex-col items-center justify-center">
-                  <div class="flight-duration-text mb-2">{{ formatDuration(segment.durationMinutes) }}</div>
-                  <div class="w-full relative">
-                    <div class="flight-duration-bar w-full"></div>
-                    <div class="plane-icon absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                      <i class="material-icons text-blue-600">flight</i>
+      <!-- Regular Flight Information (For normal flight results) -->
+      <div v-else-if="flightDetails && flightDetails.itinerary" class="card">
+        <!-- Flight Summary Information -->
+        <div class="card-header">
+          <div class="flex flex-wrap justify-between items-center">
+            <div>
+              <div class="flight-code">
+                {{ getAirportCodes(flightDetails.itinerary.legs[0]) }}
+              </div>
+              <div class="route-name">
+                {{ getOriginToDestination(flightDetails.itinerary.legs[0]) }}
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="price-display">
+                {{ getPriceInfo(flightDetails.itinerary.pricingOptions) }}
+              </div>
+              <div>Total Price</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Flight Details Information -->
+        <div class="p-6">
+          <!-- Flight Legs Information -->
+          <div v-for="(leg, legIndex) in flightDetails.itinerary.legs" :key="leg.id" class="flight-section">
+            <div class="section-title">
+              <i class="material-icons mr-2">{{ legIndex === 0 ? 'flight_takeoff' : 'flight_land' }}</i>   
+              {{ legIndex === 0 ? 'Departure Flight' : 'Return Flight' }}
+              <div class="ml-auto text-sm font-normal text-gray-500">
+                {{ formatDuration(leg.durationMinutes) }} |
+                <span v-if="leg.stopCount === 0" class="text-green-600 font-medium">Direct</span>
+                <span v-else class="text-orange-500 font-medium">{{ leg.stopCount }} Stop</span>
+              </div>
+            </div>
+
+            <!-- Segment Information (Each Flight) -->
+            <div v-for="(segment) in leg.segments" :key="segment.id" class="mb-6">
+              <div class="segment-card">
+                <div class="flex items-start gap-4 mb-4">
+                  <div class="flex-none">
+                    <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                      <img
+                        v-if="segment.marketingCarrier && segment.marketingCarrier.logo"
+                        :src="segment.marketingCarrier.logo"
+                        :alt="segment.marketingCarrier?.name || 'Airline Info'"
+                        class="airline-logo"
+                      >
+                      <span v-else class="text-3xl text-gray-400">Icon</span>
                     </div>
                   </div>
-                  <div class="flight-duration-text mt-2">
-                    <span v-if="segment.durationMinutes <= 120" class="text-green-600">Short Distance</span>
-                    <span v-else-if="segment.durationMinutes <= 360" class="text-orange-500">Medium Distance</span>
-                    <span v-else class="text-red-500">Long Distance</span>
+                  <div class="flex-grow">
+                    <div class="font-medium text-lg">{{ segment.marketingCarrier?.name || 'No Airline Info' }}</div>
+                    <div class="text-sm text-gray-500">
+                      Flight Number: {{ segment.marketingCarrier?.displayCode || '?' }}{{ segment.flightNumber || '?' }}
+                      <span v-if="segment.marketingCarrier && segment.operatingCarrier && segment.marketingCarrier.id !== segment.operatingCarrier.id">
+                        (Operating: {{ segment.operatingCarrier.name }})
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                <!-- Arrival Information -->
-                <div class="md:col-span-4 text-right">
-                  <div class="time-display mb-1">{{ formatTime(segment.arrival) }}</div>
-                  <div class="airport-code">{{ segment.destination?.airport?.displayCode || '?' }}</div> 
-                  <div class="airport-name text-sm mb-1">{{ segment.destination?.airport?.name || 'Airport information not available' }}</div>
-                  <div class="date-display text-sm">
-                    {{ formatDate(segment.arrival) }}
-                    <span v-if="segment.dayChange" class="day-change ml-1">(+{{ segment.dayChange }} days)</span>
+                <div class="grid grid-cols-1 md:grid-cols-10 gap-4 mt-6">
+                  <!-- Departure Information -->
+                  <div class="md:col-span-4">
+                    <div class="time-display mb-1">{{ formatTime(segment.departure) }}</div>
+                    <div class="airport-code">{{ segment.origin?.airport?.displayCode || '?' }}</div>      
+                    <div class="airport-name text-sm mb-1">{{ segment.origin?.airport?.name || 'No Airport Info' }}</div>
+                    <div class="date-display text-sm">{{ formatDate(segment.departure) }}</div>
                   </div>
-                </div>
-              </div>
 
-              <!-- Segment Additional Information -->
-              <div v-if="segment.goodToKnowItems && segment.goodToKnowItems.length" class="info-badge mt-4">
-                <div v-for="(item, idx) in segment.goodToKnowItems" :key="idx" class="text-sm mb-1 last:mb-0">
-                  <span v-if="item.badge && item.badge.value" class="bg-blue-600 text-white px-2 py-0.5 rounded-full text-xs mr-2">
-                    {{ item.badge.value }}
-                  </span>
-                  <span v-if="item.body && item.body.value" v-html="formatGoodToKnowText(item.body.value)"></span>
+                  <!-- Flight Duration -->
+                  <div class="md:col-span-2 flex flex-col items-center justify-center">
+                    <div class="flight-duration-text mb-2">{{ formatDuration(segment.durationMinutes) }}</div>
+                    <div class="w-full relative">
+                      <div class="flight-duration-bar w-full"></div>
+                      <div class="plane-icon absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                        <i class="material-icons text-blue-600">flight</i>
+                      </div>
+                    </div>
+                    <div class="flight-duration-text mt-2">
+                      <span v-if="segment.durationMinutes <= 120" class="text-green-600">Short</span>
+                      <span v-else-if="segment.durationMinutes <= 360" class="text-orange-500">Medium</span>
+                      <span v-else class="text-red-500">Long</span>
+                    </div>
+                  </div>
+
+                  <!-- Arrival Information -->
+                  <div class="md:col-span-4 text-right">
+                    <div class="time-display mb-1">{{ formatTime(segment.arrival) }}</div>
+                    <div class="airport-code">{{ segment.destination?.airport?.displayCode || '?' }}</div> 
+                    <div class="airport-name text-sm mb-1">{{ segment.destination?.airport?.name || 'No Airport Info' }}</div>
+                    <div class="date-display text-sm">
+                      {{ formatDate(segment.arrival) }}
+                      <span v-if="segment.dayChange" class="day-change ml-1">(+{{ segment.dayChange }} days)</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- Layover Information -->
-            <div v-if="index < leg.segments.length - 1 && leg.layovers && leg.layovers[index]" class="layover-info my-4">
-              <div class="flex items-center text-gray-500">
-                <i class="material-icons mr-2 text-orange-500">schedule</i>
-                {{ formatDuration(leg.layovers[index].duration) }} Layover - {{ leg.layovers[index].origin?.name || 'Airport Information Not Available' }}
+          <!-- Booking Button -->
+          <div v-if="flightDetails.itinerary.pricingOptions && flightDetails.itinerary.pricingOptions.length" class="booking-section">
+            <div class="booking-title flex items-center">
+              <i class="material-icons mr-2 text-blue-600">shopping_cart</i>
+              Booking Options
+            </div>
+
+            <div v-for="(option) in flightDetails.itinerary.pricingOptions" :key="option.id || option.deepLink" class="booking-option">
+              <div class="flex flex-wrap justify-between items-center mb-3">
+                <div>
+                  <div class="font-medium text-lg">
+                    {{ option.pricingItems && option.pricingItems[0]?.agent?.name || 'Unknown Provider' }} 
+                  </div>
+
+                  <div v-if="option.pricingItems && option.pricingItems[0]?.agent?.rating" class="flex items-center mt-1">
+                    <div class="flex">
+                      <i v-for="i in 5" :key="i" class="material-icons text-sm mr-0.5" :class="i <= Math.round(option.pricingItems[0].agent.rating.value) ? 'star-rating' : 'empty-star'">
+                        star
+                      </i>
+                    </div>
+                    <span class="text-sm text-gray-500 ml-1">
+                      {{ option.pricingItems[0].agent.rating.value.toFixed(1) }} ({{ option.pricingItems[0].agent.rating.count }} reviews)
+                    </span>
+                  </div>
+                </div>
+
+                <div class="booking-price">
+                  {{ formatPriceOption(option) }}
+                </div>
               </div>
+
+              <a
+                v-if="option.pricingItems && option.pricingItems[0]?.uri"
+                :href="option.pricingItems[0].uri"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="booking-button"
+              >
+                <i class="material-icons mr-1 align-middle text-sm">open_in_new</i>
+                Book Now
+              </a>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- Booking Button -->
-        <div v-if="flightDetails.itinerary.pricingOptions && flightDetails.itinerary.pricingOptions.length" class="booking-section">
-          <div class="booking-title flex items-center">
-            <i class="material-icons mr-2 text-blue-600">shopping_cart</i>
-            Booking Options
-          </div>
+      <div v-else class="text-center p-8 text-gray-500 bg-gray-50 rounded-lg">
+        <i class="material-icons text-4xl mb-2 text-gray-400">flight_off</i>
+        <p class="text-lg">No Flight Info Found</p>
+      </div>
 
-          <div v-for="(option, index) in flightDetails.itinerary.pricingOptions" :key="index" class="booking-option">
-            <div class="flex flex-wrap justify-between items-center mb-3">
+      <!-- Travel tips section -->
+      <div v-if="flightDetails" class="travel-tips bg-white rounded-lg shadow-md p-6 mt-6">
+        <h2 class="text-xl font-semibold mb-4 flex items-center">
+          <i class="material-icons mr-2 text-blue-600">lightbulb</i>
+          Travel Tips
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="tip-card p-4 border border-blue-100 rounded-lg bg-blue-50">
+            <div class="flex items-start">
+              <i class="material-icons text-blue-600 mr-3">luggage</i>
               <div>
-                <div class="font-medium text-lg">
-                  {{ option.pricingItems && option.pricingItems[0]?.agent?.name || 'Unknown Provider' }} 
-                </div>
-
-                <div v-if="option.pricingItems && option.pricingItems[0]?.agent?.rating" class="flex items-center mt-1">
-                  <div class="flex">
-                    <i v-for="i in 5" :key="i" class="material-icons text-sm mr-0.5" :class="i <= Math.round(option.pricingItems[0].agent.rating.value) ? 'star-rating' : 'empty-star'">
-                      star
-                    </i>
-                  </div>
-                  <span class="text-sm text-gray-500 ml-1">
-                    {{ option.pricingItems[0].agent.rating.value.toFixed(1) }} ({{ option.pricingItems[0].agent.rating.count }} reviews)
-                  </span>
-                </div>
-              </div>
-
-              <div class="booking-price">
-                {{ formatPriceOption(option) }}
+                <h3 class="font-medium mb-1">Baggage Check-In</h3>
+                <p class="text-sm text-gray-600">Arrive at the airport 2-3 hours before departure to check in your baggage.</p>
               </div>
             </div>
-
-            <a
-              v-if="option.pricingItems && option.pricingItems[0]?.uri"
-              :href="option.pricingItems[0].uri"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="booking-button"
-            >
-              <i class="material-icons mr-1 align-middle text-sm">open_in_new</i>
-              Book Now
-            </a>
           </div>
-        </div>
-      </div>
-    </div>
 
-    <div v-else class="text-center p-8 text-gray-500 bg-gray-50 rounded-lg">
-      <i class="material-icons text-4xl mb-2 text-gray-400">flight_off</i>
-      <p class="text-lg">Flight information not found.</p>
-    </div>
-
-    <!-- Travel tips section -->
-    <div v-if="flightDetails" class="travel-tips bg-white rounded-lg shadow-md p-6 mt-6">
-      <h2 class="text-xl font-semibold mb-4 flex items-center">
-        <i class="material-icons mr-2 text-blue-600">lightbulb</i>
-        Travel Tips
-      </h2>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="tip-card p-4 border border-blue-100 rounded-lg bg-blue-50">
-          <div class="flex items-start">
-            <i class="material-icons text-blue-600 mr-3">luggage</i>
-            <div>
-              <h3 class="font-medium mb-1">Baggage Check-In</h3>
-              <p class="text-sm text-gray-600">Arrive at the airport 2-3 hours before departure to check in your baggage.</p>
+          <div class="tip-card p-4 border border-blue-100 rounded-lg bg-blue-50">
+            <div class="flex items-start">
+              <i class="material-icons text-blue-600 mr-3">security</i>
+              <div>
+                <h3 class="font-medium mb-1">Security Check</h3>
+                <p class="text-sm text-gray-600">Prepare liquids 100ml or less and laptops, electronics separately.</p>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="tip-card p-4 border border-blue-100 rounded-lg bg-blue-50">
-          <div class="flex items-start">
-            <i class="material-icons text-blue-600 mr-3">security</i>
-            <div>
-              <h3 class="font-medium mb-1">Security Check</h3>
-              <p class="text-sm text-gray-600">Prepare liquids 100ml or less, and laptops and electronic devices separately.</p>
+          <div class="tip-card p-4 border border-blue-100 rounded-lg bg-blue-50">
+            <div class="flex items-start">
+              <i class="material-icons text-blue-600 mr-3">schedule</i>
+              <div>
+                <h3 class="font-medium mb-1">Time Zone Adjustment</h3>
+                <p class="text-sm text-gray-600">Adjust your sleep schedule to match the destination time zone.</p>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="tip-card p-4 border border-blue-100 rounded-lg bg-blue-50">
-          <div class="flex items-start">
-            <i class="material-icons text-blue-600 mr-3">schedule</i>
-            <div>
-              <h3 class="font-medium mb-1">Time Zone Adjustment</h3>
-              <p class="text-sm text-gray-600">Adjust your sleep schedule to match the destination time zone for faster time zone adaptation.</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="tip-card p-4 border border-blue-100 rounded-lg bg-blue-50">
-          <div class="flex items-start">
-            <i class="material-icons text-blue-600 mr-3">health_and_safety</i>
-            <div>
-              <h3 class="font-medium mb-1">In-Flight Health</h3>
-              <p class="text-sm text-gray-600">Stretch regularly and drink enough water during long flights.</p>
+          <div class="tip-card p-4 border border-blue-100 rounded-lg bg-blue-50">
+            <div class="flex items-start">
+              <i class="material-icons text-blue-600 mr-3">health_and_safety</i>
+              <div>
+                <h3 class="font-medium mb-1">In-Flight Health</h3>
+                <p class="text-sm text-gray-600">Stretch regularly and drink enough water during long flights.</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Debug Section (Only used during development) -->
-    <div v-if="flightDetails" class="debug-section">
-      <details>
-        <summary class="debug-title">Debug Information (Development Only)</summary>
-        <div class="debug-content">
-          <h3 class="text-white font-semibold mb-2">Token: {{ token }}</h3>
-          <h3 class="text-white font-semibold mb-2">Itinerary ID: {{ itineraryId }}</h3>
-          <pre class="debug-pre">{{ JSON.stringify(flightDetails, null, 2) }}</pre>
-        </div>
-      </details>
     </div>
   </div>
 </template>
@@ -283,7 +496,7 @@ export default {
     const router = useRouter();
 
     const flightDetails = ref(null);
-    const isLoading = ref(true);
+    const loading = ref(true);
     const error = ref(null);
 
     // Destination Images (Static)
@@ -307,48 +520,49 @@ export default {
 
     // Get Destination Name
     const getDestinationName = () => {
-      if (!flightDetails.value || !flightDetails.value.itinerary || !flightDetails.value.itinerary.legs || flightDetails.value.itinerary.legs.length === 0) {
-        return 'Destination';
+      if (!flightDetails.value) return 'Destination';
+      
+      // Destination-specific info exists
+      if (flightDetails.value.destinationInfo && flightDetails.value.destinationInfo.location) {
+        return flightDetails.value.destinationInfo.location.name || 'Destination';
       }
 
-      const leg = flightDetails.value.itinerary.legs[0];
-      return leg.destination && leg.destination.city
-        ? leg.destination.city.name
-        : (leg.destination && leg.destination.airport ? leg.destination.airport.name : '목적지');      
+      // Extract destination info from existing flight info
+      if (flightDetails.value.itinerary && flightDetails.value.itinerary.legs && flightDetails.value.itinerary.legs.length > 0) {
+        const leg = flightDetails.value.itinerary.legs[0];
+        return leg.destination && leg.destination.city
+          ? leg.destination.city.name
+          : (leg.destination && leg.destination.airport ? leg.destination.airport.name : 'Destination');      
+      }
+      
+      return 'Destination';
     };
 
     // Get Flight Details
     const fetchFlightDetails = async () => {
-      isLoading.value = true;
+      loading.value = true;
       error.value = null;
 
       try {
         const response = await getFlightDetails(props.token, props.itineraryId);
         if (response && response.data) {
-          console.log('Flight Details API Response:', response.data);  // Debugging Log
-
           // Verify Data Structure and Process
           if (response.data.itinerary) {
             // Check if required properties exist
             if (!response.data.itinerary.legs || response.data.itinerary.legs.length === 0) {
-              console.warn('No legs data found in the API response');
+              // No legs data found in the API response
             }
 
             // Check Date Format and Convert (if needed)
             if (response.data.itinerary.legs && response.data.itinerary.legs.length > 0) {
               response.data.itinerary.legs.forEach(leg => {
-                console.log('Leg data:', leg);
                 if (leg.segments && leg.segments.length > 0) {
-                  leg.segments.forEach(segment => {
-                    console.log('Segment departure:', segment.departure);
-                    console.log('Segment arrival:', segment.arrival);
-                    // Add processing logic for unusual date formats if needed
-                  });
+                  // Add processing logic for unusual date formats if needed
                 }
               });
             }
           } else {
-            console.warn('No itinerary data found in the API response');
+            // No itinerary data found in the API response
           }
 
           flightDetails.value = response.data;
@@ -356,10 +570,9 @@ export default {
           error.value = 'Failed to fetch flight information.';
         }
       } catch (err) {
-        console.error('Flight Details Error:', err);
         error.value = 'Failed to fetch flight information.';
       } finally {
-        isLoading.value = false;
+        loading.value = false;
       }
     };
 
@@ -370,52 +583,69 @@ export default {
 
     // Formatting Functions
     const formatDate = (dateObj) => {
-      if (!dateObj) return 'No date information';
+      if (!dateObj) return 'No Date Info';
 
       try {
-        // If the API provides a {year, month, day, hour, minute} object
-        if (typeof dateObj === 'object' && dateObj.year && dateObj.month && dateObj.day) {
-          const date = new Date(dateObj.year, dateObj.month - 1, dateObj.day);
-          const options = { year: 'numeric', month: 'short', day: 'numeric', weekday: 'short' };
-          return date.toLocaleDateString('ko-KR', options);
+        // API provides object (year, month, day, hour, minute)
+        if (typeof dateObj === 'object') {
+          // Destination date info may already be a JavaScript Date object
+          if (dateObj instanceof Date) {
+            const options = { year: 'numeric', month: 'short', day: 'numeric', weekday: 'short' };
+            return dateObj.toLocaleDateString('en-US', options);
+          }
+
+          // If year, month, day are present
+          if (dateObj.year && dateObj.month && dateObj.day) {
+            const date = new Date(dateObj.year, dateObj.month - 1, dateObj.day);
+            const options = { year: 'numeric', month: 'short', day: 'numeric', weekday: 'short' };
+            return date.toLocaleDateString('en-US', options);
+          }
+          
+          // If other date format, convert to JSON string and process
+          const dateStr = JSON.stringify(dateObj);
+          return `Date Info: ${dateStr}`;
         }
 
-        // If it's a string, keep the existing processing method
-        const date = new Date(dateObj);
-        if (isNaN(date.getTime())) {
-          return 'Date information error';
-        }
-
-        const options = { year: 'numeric', month: 'short', day: 'numeric', weekday: 'short' };
-        return date.toLocaleDateString('ko-KR', options);
+        return 'No Date Info';
       } catch (e) {
-        console.error('Date formatting error:', e, dateObj);
-        return 'Date information error';
+        return 'Date processing error';
       }
     };
 
     const formatTime = (dateObj) => {
-      if (!dateObj) return 'No time information';
+      if (!dateObj) return 'No Time Info';
 
       try {
-        // If the API provides a {year, month, day, hour, minute} object
-        if (typeof dateObj === 'object' && dateObj.hour !== undefined && dateObj.minute !== undefined) { 
-          // Format time and minutes as two-digit numbers
-          const hours = dateObj.hour.toString().padStart(2, '0');
-          const minutes = dateObj.minute.toString().padStart(2, '0');
-          return `${hours}:${minutes}`;
+        // Destination date info may already be a JavaScript Date object
+        if (dateObj instanceof Date) {
+          return dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        }
+        
+        // Object format processing (year, month, day, hour, minute)
+        if (typeof dateObj === 'object' && dateObj.year && dateObj.month && dateObj.hour !== undefined && dateObj.minute !== undefined) {
+          const date = new Date(
+            dateObj.year, 
+            dateObj.month - 1, 
+            dateObj.day || 1, 
+            dateObj.hour, 
+            dateObj.minute
+          );
+          return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        }
+        
+        // String processing
+        if (typeof dateObj === 'string') {
+          const date = new Date(dateObj);
+          if (isNaN(date.getTime())) {
+            return 'Time format error';
+          }
+          
+          return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
         }
 
-        // If it's a string, keep the existing processing method
-        const date = new Date(dateObj);
-        if (isNaN(date.getTime())) {
-          return 'Time information error';
-        }
-
-        return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true });   
+        return 'No Time Info';
       } catch (e) {
-        console.error('Time formatting error:', e, dateObj);
-        return 'Time information error';
+        return 'Time processing error';
       }
     };
 
@@ -469,7 +699,6 @@ export default {
 
         return 'No price information';
       } catch (e) {
-        console.error('Price processing error:', e);
         return 'No price information';
       }
     };
@@ -489,7 +718,6 @@ export default {
 
         return 'No price information';
       } catch (e) {
-        console.error('Price processing error:', e);
         return 'No price information';
       }
     };
@@ -500,7 +728,7 @@ export default {
 
     return {
       flightDetails,
-      isLoading,
+      loading,
       error,
       destinationImages,
       goBack,
@@ -519,6 +747,18 @@ export default {
 </script>
 
 <style scoped>
+.flight-detail-container {
+  background-image: url('@/assets/flight.jpg');
+  background-size: cover;
+  background-attachment: fixed;
+  background-position: center;
+  min-height: 100vh;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
 .container {
   max-width: 1200px;
 }
@@ -840,5 +1080,12 @@ export default {
   background-color: white;
   border-radius: 1rem;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.07);
+}
+
+/* Destination info addition */
+.destination-info-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #f0f0f0;
 }
 </style>

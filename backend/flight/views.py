@@ -4,28 +4,23 @@ import requests
 from django.conf import settings
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import SearchHistory, Airport
 import json
 import os
 from dotenv import load_dotenv
+import base64
 
-# API 키를 환경 변수에서 로드
+# Load API key from environment variables
 load_dotenv()
-RAPIDAPI_KEY = os.getenv('RAPIDAPI_KEY', '0e8e728d6dmsh90bb05c3c37e094p17e44fjsn4f55039ba30b')  # 실제 프로덕션에서는 이 키를 환경 변수로 설정
+RAPIDAPI_KEY = os.getenv('RAPIDAPI_KEY', '4a95574f32msh3ecc8c16cd287a5p127f43jsn2d2530d45138')  # In production, this key should be set as an environment variable
 RAPIDAPI_HOST = "sky-scanner3.p.rapidapi.com"
 
-# 하드코딩된 키가 있는지 확인 (디버깅용)
-print(f"\n==== API KEY CHECK ====")
-print(f"Using API Key: {RAPIDAPI_KEY[:5]}...{RAPIDAPI_KEY[-5:]}")  # 보안을 위해 키의 일부만 출력
-print(f"Using API Host: {RAPIDAPI_HOST}")
-
-# API 엔드포인트 URL
+# API endpoints
 AUTO_COMPLETE_URL = "https://sky-scanner3.p.rapidapi.com/flights/auto-complete"
 SEARCH_ROUNDTRIP_URL = "https://sky-scanner3.p.rapidapi.com/flights/search-roundtrip"
 SEARCH_ONEWAY_URL = "https://sky-scanner3.p.rapidapi.com/flights/search-one-way"
 FLIGHT_DETAIL_URL = "https://sky-scanner3.p.rapidapi.com/flights/detail"
 
-# 기본 헤더
+# default headers
 DEFAULT_HEADERS = {
     "x-rapidapi-key": RAPIDAPI_KEY,
     "x-rapidapi-host": RAPIDAPI_HOST
@@ -33,7 +28,7 @@ DEFAULT_HEADERS = {
 
 @api_view(['GET'])
 def get_airports(request):
-    """공항 자동완성 API"""
+    """Airport autocomplete API"""
     query = request.GET.get('query', '')
     
     if not query:
@@ -43,9 +38,9 @@ def get_airports(request):
     
     try:
         response = requests.get(AUTO_COMPLETE_URL, headers=DEFAULT_HEADERS, params=querystring)
-        response.raise_for_status()  # 에러 발생시 예외 발생
+        response.raise_for_status()  # raise an exception if an error occurs
         
-        # 공항 자동완성 검색은 기록하지 않음 (너무 많은 데이터 생성 방지)
+        # airport autocomplete search is not logged (to avoid creating too much data)
         
         return Response(response.json())
     except requests.exceptions.RequestException as e:
@@ -53,8 +48,14 @@ def get_airports(request):
 
 @api_view(['GET'])
 def search_flights(request):
-    """항공편 검색 API (왕복/편도)"""
-    trip_type = request.GET.get('trip_type', 'round')  # 'round' 또는 'one-way'
+    """Flight search API (round/one-way)"""
+    print("="*40)
+    print("[DEBUG] search_flights endpoint was called")
+    print("[DEBUG] Request method:", request.method)
+    print("[DEBUG] Request GET params:", dict(request.GET))
+    print("="*40)
+    
+    trip_type = request.GET.get('trip_type', 'round')  # 'round' or 'one-way'
     from_entity_id = request.GET.get('fromEntityId', '')
     to_entity_id = request.GET.get('toEntityId', '')
     depart_date = request.GET.get('departDate', '')
@@ -64,20 +65,10 @@ def search_flights(request):
     children = request.GET.get('children', '0')
     infants = request.GET.get('infants', '0')
     
-    # 디버깅을 위한 요청 정보 출력
-    print("\n==== FLIGHT SEARCH REQUEST ====")
-    print(f"Trip Type: {trip_type}")
-    print(f"From: {from_entity_id}")
-    print(f"To: {to_entity_id}")
-    print(f"Depart Date: {depart_date}")
-    print(f"Return Date: {return_date}")
-    print(f"Cabin Class: {cabin_class}")
-    print(f"Adults: {adults}, Children: {children}, Infants: {infants}")
-    
     if not from_entity_id:
         return Response({"error": "From location is required"}, status=400)
     
-    # 기본 쿼리 파라미터
+    # default query parameters
     querystring = {
         "fromEntityId": from_entity_id,
         "toEntityId": to_entity_id,
@@ -87,65 +78,198 @@ def search_flights(request):
         "infants": infants
     }
     
-    # 출발 날짜가 있으면 추가
+    # if the departure date is provided, add it to the query parameters
     if depart_date:
         querystring["departDate"] = depart_date
     
-    # 왕복인 경우 돌아오는 날짜도 추가
+    # if the round trip is selected and the return date is provided, add it to the query parameters
     if trip_type == 'round' and return_date:
         querystring["returnDate"] = return_date
         url = SEARCH_ROUNDTRIP_URL
     else:
         url = SEARCH_ONEWAY_URL
     
-    print(f"\nAPI URL: {url}")
-    print(f"Query Params: {querystring}")
-    print(f"API Headers: {DEFAULT_HEADERS}")
+    print(f"[DEBUG] Calling SkyScanner API URL: {url}")
+    print(f"[DEBUG] With parameters: {querystring}")
     
     try:
         response = requests.get(url, headers=DEFAULT_HEADERS, params=querystring)
-        print(f"\nAPI Response Status: {response.status_code}")
-        
-        # 응답 시작 부분만 출력 (너무 길어질 수 있음)
-        response_preview = str(response.text)[:500] + "..." if len(response.text) > 500 else response.text
-        print(f"API Response Preview: {response_preview}")
+        print(f"[DEBUG] SkyScanner API response status code: {response.status_code}")
         
         response.raise_for_status()
         
-        # 검색 기록 저장
-        if depart_date and to_entity_id:
-            try:
-                # 로그인한 사용자이면 사용자 정보 포함하여 저장
-                user = request.user if request.user.is_authenticated else None
-                
-                # DB 테이블이 없는 경우에 대비한 예외 처리 추가
-                SearchHistory.objects.create(
-                    user=user,  # 사용자 정보 추가
-                    origin=from_entity_id,
-                    destination=to_entity_id,
-                    departure_date=depart_date,
-                    return_date=return_date if trip_type == 'round' and return_date else None
-                )
-            except Exception as e:
-                print(f"Error saving search history: {e}")
-                # 오류가 발생해도 계속 진행
-        
         response_data = response.json()
         
-        # 응답 데이터 구조 검사
-        print(f"\nResponse Data Keys: {response_data.keys() if isinstance(response_data, dict) else 'Not a dict'}")
-        if isinstance(response_data, dict) and 'data' in response_data:
-            data_preview = str(response_data['data'])[:500] + "..." if len(str(response_data['data'])) > 500 else str(response_data['data'])
-            print(f"Data Preview: {data_preview}")
+        # Log session ID information
+        if 'sessionId' in response_data:
+            print(f"[DEBUG] Found sessionId at root level: {response_data['sessionId']}")
+        elif 'session' in response_data and 'token' in response_data['session']:
+            print(f"[DEBUG] Found session token: {response_data['session']['token']}")
+        elif 'context' in response_data and 'sessionId' in response_data['context']:
+            print(f"[DEBUG] Found sessionId in context: {response_data['context']['sessionId']}")
+        elif 'flightsSessionId' in response_data:
+            print(f"[DEBUG] Found flightsSessionId: {response_data['flightsSessionId']}")
+        else:
+            # Look deeper for session IDs
+            print("[DEBUG] Session ID not found in common locations, searching deeper...")
+            try:
+                response_str = json.dumps(response_data)
+                if 'sessionId' in response_str:
+                    print("[DEBUG] A sessionId exists somewhere in the response")
+                if 'token' in response_str:
+                    print("[DEBUG] A token exists somewhere in the response")
+            except:
+                print("[DEBUG] Could not search deeper for session IDs")
         
+        print("[DEBUG] Returning original SkyScanner API response structure")
         return Response(response_data)
     except requests.exceptions.RequestException as e:
-        print(f"\nAPI Error: {e}")
+        error_msg = str(e)
+        print(f"[ERROR] SkyScanner API request failed: {error_msg}")
         return Response({"error": str(e)}, status=500)
 
 @api_view(['GET'])
+def search_flights_complete(request):
+    """Process subsequent requests for incomplete flight search results"""
+    print("="*40)
+    print("[DEBUG] search_flights_complete endpoint was called")
+    print("[DEBUG] Request method:", request.method)
+    print("[DEBUG] Request GET params:", dict(request.GET))
+    print("="*40)
+    
+    session_id = request.GET.get('sessionId', '')
+    
+    if not session_id:
+        print("[ERROR] No sessionId provided in request")
+        return Response({"error": "session ID is required"}, status=400)
+    
+    print(f"[DEBUG] search_flights_complete called with session_id: {session_id}")
+    
+    # Check if sessionId looks like base64
+    try:
+        # Try to decode to check if it's base64
+        decoded = base64.b64decode(session_id)
+        print(f"[DEBUG] sessionId appears to be base64 encoded. Decoded: {decoded[:30]}...")
+        
+        # Try to parse as JSON if it looks like JSON
+        if decoded.startswith(b'{') and decoded.endswith(b'}'):
+            try:
+                decoded_json = json.loads(decoded)
+                print(f"[DEBUG] sessionId decoded to JSON: {decoded_json}")
+                print("[WARNING] This looks like a client-generated sessionId, not from SkyScanner API")
+            except:
+                print("[DEBUG] Base64 decoded value is not valid JSON")
+    except:
+        print("[DEBUG] sessionId is not base64 encoded, likely a genuine SkyScanner token")
+    
+    # API endpoint
+    api_url = "https://sky-scanner3.p.rapidapi.com/flights/search-incomplete"
+    print(f"[DEBUG] Using API URL: {api_url}")
+    
+    # set API call parameters - SkyScanner expects sessionId
+    querystring = {
+        "sessionId": session_id
+    }
+    
+    # optional filter parameters
+    stops = request.GET.get('stops', '')
+    sort = request.GET.get('sort', '')
+    airlines = request.GET.get('airlines', '')
+    
+    # add optional parameters only if they are provided
+    if stops:
+        querystring["stops"] = stops
+    if sort:
+        querystring["sort"] = sort
+    if airlines:
+        querystring["airlines"] = airlines
+        
+    # other optional parameters
+    market = request.GET.get('market', '')
+    locale = request.GET.get('locale', '')
+    currency = request.GET.get('currency', '')
+    cookie = request.GET.get('cookie', '')
+    
+    if market:
+        querystring["market"] = market
+    if locale:
+        querystring["locale"] = locale
+    if currency:
+        querystring["currency"] = currency
+    if cookie:
+        querystring["cookie"] = cookie
+    
+    print(f"[DEBUG] API call parameters: {querystring}")
+    
+    try:
+        print(f"[DEBUG] Making request to SkyScanner API with sessionId parameter...")
+        
+        # Make the API call
+        response = requests.get(
+            api_url, 
+            headers=DEFAULT_HEADERS, 
+            params=querystring
+        )
+        
+        print(f"[DEBUG] API response received with status code: {response.status_code}")
+        
+        if response.status_code != 200:
+            print(f"[DEBUG] Response content: {response.text}")
+            
+            # If the sessionId format is wrong, try with token parameter instead
+            if response.status_code == 400 and "Invalid format" in response.text:
+                print("[DEBUG] Trying again with 'token' parameter instead of 'sessionId'")
+                
+                # Use token parameter instead of sessionId
+                token_querystring = querystring.copy()
+                token_querystring.pop('sessionId', None)
+                token_querystring['token'] = session_id
+                
+                print(f"[DEBUG] New API call parameters: {token_querystring}")
+                
+                response = requests.get(
+                    api_url, 
+                    headers=DEFAULT_HEADERS, 
+                    params=token_querystring
+                )
+                
+                print(f"[DEBUG] Second attempt API response status code: {response.status_code}")
+                
+                if response.status_code != 200:
+                    print(f"[DEBUG] Second attempt response content: {response.text}")
+        
+        # Raise exception for bad responses
+        response.raise_for_status()
+        
+        # Parse JSON response
+        response_data = response.json()
+        print(f"[DEBUG] API response successfully parsed to JSON")
+        
+        # Format the response to be consistent with search_flights
+        formatted_response = {
+            "status": True,
+            "message": "Flight search completed successfully",
+            "data": response_data
+        }
+        
+        print("[DEBUG] Returning formatted response to client")
+        return Response(formatted_response)
+        
+    except requests.exceptions.RequestException as e:
+        error_msg = str(e)
+        print(f"[ERROR] API request failed: {error_msg}")
+        
+        # Return a special error code so the frontend knows to use the initial search results
+        return Response({
+            "status": False,
+            "message": f"SkyScanner API 호출 오류: {error_msg}",
+            "data": None,
+            "errorCode": "API_UNAVAILABLE"
+        }, status=500)
+
+@api_view(['GET'])
 def get_flight_details(request):
-    """항공편 상세 정보 API"""
+    """Flight details API"""
     token = request.GET.get('token', '')
     itinerary_id = request.GET.get('itineraryId', '')
     
@@ -164,32 +288,3 @@ def get_flight_details(request):
     except requests.exceptions.RequestException as e:
         return Response({"error": str(e)}, status=500)
 
-@api_view(['GET'])
-def get_search_history(request):
-    """사용자의 최근 검색 기록을 반환"""
-    try:
-        # 인증된 사용자인지 확인
-        if not request.user.is_authenticated:
-            return Response({"error": "로그인이 필요합니다."}, status=401)
-            
-        # 현재 로그인한 사용자의 최신 검색 기록 10개 가져오기
-        try:
-            history = SearchHistory.objects.filter(user=request.user).order_by('-search_date')[:10]
-            data = [
-                {
-                    "id": item.id,
-                    "origin": item.origin,
-                    "destination": item.destination,
-                    "departure_date": item.departure_date,
-                    "return_date": item.return_date,
-                    "search_date": item.search_date
-                }
-                for item in history
-            ]
-            return Response({"results": data})
-        except Exception as e:
-            # 테이블이 없는 경우 등의 오류 처리
-            print(f"Error retrieving search history: {e}")
-            return Response({"results": []})
-    except Exception as e:
-        return Response({"error": str(e)}, status=500)

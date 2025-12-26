@@ -32,13 +32,14 @@ class PostListCreateView(generics.ListCreateAPIView):
         serializer.save(author=self.request.user)  # Automatically set the author
 
 
-# ✅ Retrieve post details and delete posts
-class PostDetailDeleteView(generics.RetrieveDestroyAPIView):
+# ✅ Retrieve, update and delete posts
+class PostDetailDeleteView(generics.RetrieveUpdateDestroyAPIView):
     """
     API view for retrieving, updating and deleting specific posts.
-    Provides GET (view details) and DELETE functionality for individual posts.
+    Provides GET (view details), PUT/PATCH (update), and DELETE functionality for individual posts.
     
     GET: Returns post details along with its comments
+    PUT/PATCH: Updates post contents (only allowed for the post author)
     DELETE: Removes a post (only allowed for the post author)
     """
     queryset = Post.objects.all()
@@ -64,6 +65,22 @@ class PostDetailDeleteView(generics.RetrieveDestroyAPIView):
         data['comments'] = comment_serializer.data  # ✅ Add comments to post data
 
         return Response(data)
+        
+    def update(self, request, *args, **kwargs):
+        """
+        Custom update method with author verification.
+        Only allows post update by the original author.
+        
+        Returns:
+            Response with updated data or permission error
+        """
+        instance = self.get_object()
+        
+        # ✅ Prevent update if not the author
+        if request.user != instance.author:
+            return Response({'error': 'You can only edit your own posts.'}, status=status.HTTP_403_FORBIDDEN)
+            
+        return super().update(request, *args, **kwargs)
         
     def destroy(self, request, *args, **kwargs):
         """
@@ -130,6 +147,7 @@ def delete_comment(request, comment_id):
     comment.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
 
+# ✅ Get user comments
 @api_view(['GET'])
 @permission_classes([IsAuthenticatedOrReadOnly])
 def get_comments(request, post_id):
@@ -155,24 +173,78 @@ def get_comments(request, post_id):
 def search_posts(request):
     """
     Search posts API endpoint.
-    Searches for posts by title or author username.
+    Searches for posts by title, author username, or both based on search_type.
     
     Parameters:
-        request: HTTP request with query parameter
+        request: HTTP request with query and search_type parameters
         
     Returns:
         Response with list of matching posts
     """
     query = request.GET.get('query', '')
+    search_type = request.GET.get('search_type', 'all')  # Default to 'all'
     
     if not query:
         return Response({'error': 'Please provide a search query'}, status=status.HTTP_400_BAD_REQUEST)
     
-    # Search in title or author username
-    posts = Post.objects.filter(
-        Q(title__icontains=query) | 
-        Q(author__username__icontains=query)
-    ).order_by('-created_at')
+    # Filter posts based on search type
+    if search_type == 'title':
+        # Search only in post titles
+        posts = Post.objects.filter(title__icontains=query).order_by('-created_at')
+    elif search_type == 'author':
+        # Search only by author username
+        posts = Post.objects.filter(author__username__icontains=query).order_by('-created_at')
+    else:
+        # Search in both title and author (default)
+        posts = Post.objects.filter(
+            Q(title__icontains=query) | 
+            Q(author__username__icontains=query)
+        ).order_by('-created_at')
     
     serializer = PostSerializer(posts, many=True, context={'request': request})
     return Response(serializer.data)
+
+# ✅ Get user posts
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_posts(request):
+    """
+    User posts API endpoint.
+    Retrieves all posts created by the authenticated user.
+    
+    Parameters:
+        request: HTTP request from authenticated user
+        
+    Returns:
+        Response with list of user's posts
+    """
+    posts = Post.objects.filter(author=request.user).order_by('-created_at')
+    serializer = PostSerializer(posts, many=True, context={'request': request})
+    return Response(serializer.data)
+
+# ✅ Get user comments
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_comments(request):
+    """
+    User comments API endpoint.
+    Retrieves all comments created by the authenticated user.
+    
+    Parameters:
+        request: HTTP request from authenticated user
+        
+    Returns:
+        Response with list of user's comments including post information
+    """
+    comments = Comment.objects.filter(author=request.user).order_by('-created_at')
+    
+    # Create a custom response with post information
+    result = []
+    for comment in comments:
+        comment_data = CommentSerializer(comment, context={'request': request}).data
+        # Add post information to help navigation
+        comment_data['post_id'] = comment.post.id
+        comment_data['post_title'] = comment.post.title
+        result.append(comment_data)
+    
+    return Response(result)
