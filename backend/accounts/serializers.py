@@ -1,27 +1,57 @@
+
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from accounts.models import CustomUser
 
 class RegisterSerializer(serializers.ModelSerializer):
+    """
+    User registration serializer.
+    
+    Handles the process of creating new user accounts and includes custom validation logic
+    such as password validation and tag selection validation.
+    """
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
-    password2 = serializers.CharField(write_only=True, required=True)  # 비밀번호 확인 필드
+    password2 = serializers.CharField(write_only=True, required=True)  # Password confirmation field
 
     class Meta:
-        model = CustomUser
-        fields = ('username', 'email', 'nickname', 'password', 'password2', 'gender', 'selected_tags')
+        model = CustomUser  # Using CustomUser model
+        fields = ('username', 'email', 'nickname', 'password', 'password2', 'gender', 'age_group', 'selected_tags')  # Include all fields
 
     def validate(self, attrs):
-        if attrs['password'] != attrs['password2']:
-            raise serializers.ValidationError({"password": "Passwords must match."})
+        """
+        Validate the data.
         
-        # 태그 선택 검증 (3-7개 사이)
+        Verifies password matching and the number of selected tags.
+        
+        Parameters:
+            attrs: Dictionary of data to validate
+            
+        Returns:
+            Dictionary of validated data
+            
+        Raises:
+            ValidationError: If passwords don't match or tag selection is invalid
+        """
+        if attrs['password'] != attrs['password2']:
+            raise serializers.ValidationError({"password": "Passwords must match."})  # Password matching validation
+        
+        # Tag selection validation (3-7 tags)
         selected_tags = attrs.get('selected_tags', [])
         if selected_tags and (len(selected_tags) < 3 or len(selected_tags) > 7):
-            raise serializers.ValidationError({"selected_tags": "3개에서 7개 사이의 태그를 선택해야 합니다."})
+            raise serializers.ValidationError({"selected_tags": "You must select between 3 and 7 tags."})  # Tag count validation
             
         return attrs
 
     def create(self, validated_data):
-        validated_data.pop('password2')  # password2는 저장할 필요 없음
-        user = CustomUser.objects.create_user(**validated_data)  # 사용자 생성
+        """
+        Create a user with validated data.
+        
+        Parameters:
+            validated_data: Validated user data
+            
+        Returns:
+            Newly created CustomUser instance
+        """
+        validated_data.pop('password2')  # Don't store password2
+        user = CustomUser.objects.create_user(**validated_data)  # Create user
         return user

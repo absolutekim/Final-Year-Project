@@ -1,13 +1,16 @@
 <template>
+  <!-- New post creation container -->
   <v-container class="new-post-container">
     <v-row justify="center">
       <v-col cols="12" md="8">
+        <!-- Post creation card -->
         <v-card class="new-post-card" elevation="4">
           <v-card-title class="text-center text-h4 font-weight-bold primary--text">
             Create New Post
           </v-card-title>
 
           <v-card-text>
+            <!-- Post submission form with validation -->
             <v-form @submit.prevent="createPost" ref="form">
               <v-text-field
                 v-model="title"
@@ -22,7 +25,7 @@
 
               <v-textarea
                 v-model="content"
-                label="내용"
+                label="Content"
                 outlined
                 dense
                 required
@@ -33,6 +36,7 @@
               ></v-textarea>
 
               <div class="d-flex justify-space-between">
+                <!-- Back button to return to community page -->
                 <v-btn
                   color="grey"
                   text
@@ -41,6 +45,7 @@
                   <v-icon left>mdi-arrow-left</v-icon>
                   Back to List
                 </v-btn>
+                <!-- Submit button for post creation -->
                 <v-btn
                   color="primary"
                   type="submit"
@@ -62,15 +67,28 @@
 <script>
 import axios from 'axios';
 
+/**
+ * New Post View Component
+ * Allows users to create new community posts
+ * Features:
+ * - Form with title and content fields
+ * - Input validation
+ * - Loading state during submission
+ * - Navigation back to community page
+ */
 export default {
   data() {
     return {
-      title: '',
-      content: '',
-      loading: false
+      title: '', // Post title input field
+      content: '', // Post content textarea
+      loading: false // Loading state for form submission
     };
   },
   methods: {
+    /**
+     * Create a new post with the form data
+     * Validates inputs, submits to API, and redirects on success
+     */
     async createPost() {
       if (!this.title.trim() || !this.content.trim()) return;
       
@@ -83,10 +101,10 @@ export default {
           author_id: userId
         });
 
-        console.log("✅ 게시글 작성 성공:", response.data);
+        console.log("✅ Post created successfully:", response.data);
         this.$router.push('/community');
       } catch (error) {
-        console.error("🚨 게시글 작성 실패:", error);
+        console.error("🚨 Failed to create post:", error);
       } finally {
         this.loading = false;
       }
@@ -96,41 +114,49 @@ export default {
 </script>
 
 <style scoped>
+/* Main container styling with gradient background */
 .new-post-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #f6f9fc 0%, #eef2f7 100%);
   padding: 40px 0;
 }
 
+/* Card styling with rounded corners */
 .new-post-card {
   border-radius: 12px;
   overflow: hidden;
 }
 
+/* Card title styling with bottom border */
 .v-card-title {
   padding: 24px 16px;
   border-bottom: 2px solid #eee;
 }
 
+/* Card content padding */
 .v-card-text {
   padding: 24px 16px;
 }
 
+/* Text field background styling */
 .v-text-field {
   background-color: #f8f9fa;
   border-radius: 4px;
 }
 
+/* Textarea background styling */
 .v-textarea {
   background-color: #f8f9fa;
   border-radius: 4px;
 }
 
+/* Button text styling */
 .v-btn {
   text-transform: none;
   letter-spacing: 0.5px;
 }
 
+/* Form width constraint */
 .v-form {
   max-width: 100%;
 }

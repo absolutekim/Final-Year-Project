@@ -1,15 +1,22 @@
 <template>
+  <!-- Post detail page container -->
   <v-container class="post-detail-container">
     <v-row justify="center">
       <v-col cols="12" md="8">
+        <!-- Post detail card with elevation -->
         <v-card class="post-detail-card" elevation="4">
-          <!-- 게시글 제목 및 정보 -->
+          <!-- Post title and author information -->
           <v-card-title class="text-h4 font-weight-bold primary--text">
             {{ post.title }}
           </v-card-title>
 
           <v-card-subtitle class="d-flex align-center">
-            <v-icon small class="mr-1">mdi-account</v-icon>
+            <user-avatar
+              :username="post.author"
+              :profile-image="post.author_profile_image"
+              :size="36"
+              class="mr-2"
+            ></user-avatar>
             {{ post.author }}
             <v-spacer></v-spacer>
             <v-icon small class="mr-1">mdi-clock-outline</v-icon>
@@ -18,12 +25,12 @@
 
           <v-divider></v-divider>
 
-          <!-- 게시글 내용 -->
+          <!-- Post content section -->
           <v-card-text class="text-body-1">
             {{ post.content }}
           </v-card-text>
 
-          <!-- 수정 및 삭제 버튼 -->
+          <!-- Edit and delete buttons (visible only to author) -->
           <v-card-actions v-if="isAuthor" class="px-4">
             <v-spacer></v-spacer>
             <v-btn
@@ -46,14 +53,14 @@
 
           <v-divider></v-divider>
 
-          <!-- 댓글 섹션 -->
+          <!-- Comments section -->
           <v-card-text>
             <div class="text-h6 font-weight-bold mb-4">
               <v-icon left>mdi-comment</v-icon>
               Comment
             </div>
 
-            <!-- 댓글 목록 -->
+            <!-- Comments list -->
             <v-list>
               <v-list-item
                 v-for="comment in post.comments"
@@ -62,7 +69,12 @@
               >
                 <v-list-item-content>
                   <v-list-item-title class="d-flex align-center">
-                    <v-icon small class="mr-1">mdi-account</v-icon>
+                    <user-avatar
+                      :username="comment.author"
+                      :profile-image="comment.author_profile_image"
+                      :size="24"
+                      class="mr-2"
+                    ></user-avatar>
                     {{ comment.author }}
                     <v-spacer></v-spacer>
                     <v-btn
@@ -82,7 +94,7 @@
               </v-list-item>
             </v-list>
 
-            <!-- 댓글 작성 -->
+            <!-- New comment form -->
             <v-form @submit.prevent="addComment" class="mt-4">
               <v-textarea
                 v-model="newComment"
@@ -111,17 +123,34 @@
 
 <script>
 import axios from 'axios';
+import UserAvatar from '@/components/UserAvatar.vue';
 
+/**
+ * Post Detail View Component
+ * Displays a community post with details and comments
+ * Features:
+ * - Post title, author, and creation time display
+ * - Post content rendering
+ * - Comment section with add/delete functionality
+ * - Post edit and delete options for authors
+ */
 export default {
+  components: {
+    UserAvatar // UserAvatar 컴포넌트 등록
+  },
   data() {
     return {
       post: {
-        comments: []
+        comments: [] // Array of comments for the post
       },
-      newComment: '',
+      newComment: '', // New comment input text
     };
   },
   computed: {
+    /**
+     * Check if current user is the post author
+     * @returns {boolean} True if logged in user is the post author
+     */
     isAuthor() {
       const username = localStorage.getItem('username');
       return this.post.author === username;
@@ -130,19 +159,24 @@ export default {
   async created() {
     try {
       const postId = this.$route.params.id;
-      const response = await axios.get(`http://localhost:8000/api/community/posts/${postId}/`);
+      const response = await axios.get(`/api/community/posts/${postId}/`);
       this.post = response.data;
 
-      const commentsResponse = await axios.get(`http://localhost:8000/api/community/posts/${postId}/comments/all/`);
+      const commentsResponse = await axios.get(`/api/community/posts/${postId}/comments/all/`);
       this.post.comments = commentsResponse.data;
       
-      console.log('현재 로그인한 사용자:', localStorage.getItem('username'));
-      console.log('댓글 목록:', this.post.comments);
+      console.log('Current logged-in user:', localStorage.getItem('username'));
+      console.log('Comments list:', this.post.comments);
     } catch (error) {
-      console.error("게시글 조회 실패:", error);
+      console.error("Failed to retrieve post:", error);
     }
   },
   methods: {
+    /**
+     * Format date string to localized format
+     * @param {string} dateString - ISO date string to format
+     * @returns {string} Formatted date string
+     */
     formatDate(dateString) {
       if (!dateString) return '';
       const date = new Date(dateString);
@@ -154,43 +188,65 @@ export default {
         minute: '2-digit'
       });
     },
+    
+    /**
+     * Check if current user is a comment author
+     * @param {Object} comment - Comment object to check
+     * @returns {boolean} True if logged in user is the comment author
+     */
     isCommentAuthor(comment) {
       const username = localStorage.getItem('username');
       return comment.author === username;
     },
+    
+    /**
+     * Delete the current post
+     * Confirms with user before deletion and redirects on success
+     */
     async deletePost() {
-      if (confirm("정말 삭제하시겠습니까?")) {
+      if (confirm("Are you sure you want to delete this post?")) {
         try {
-          await axios.delete(`http://localhost:8000/api/community/posts/${this.post.id}/`);
-          alert("게시글이 삭제되었습니다.");
+          await axios.delete(`/api/community/posts/${this.post.id}/`);
+          alert("The post has been deleted.");
           this.$router.push('/community');
         } catch (error) {
-          console.error("🚨 게시글 삭제 실패:", error);
+          console.error("🚨 Failed to delete post:", error);
         }
       }
     },
+    
+    /**
+     * Add a new comment to the post
+     * Validates tag selection and sends registration request to API
+     */
     async addComment() {
       if (!this.newComment.trim()) return;
       try {
-        await axios.post(`http://localhost:8000/api/community/posts/${this.post.id}/comments/`, {
+        await axios.post(`/api/community/posts/${this.post.id}/comments/`, {
           content: this.newComment,
         });
 
         this.newComment = '';
 
-        const commentsResponse = await axios.get(`http://localhost:8000/api/community/posts/${this.post.id}/comments/all/`);
+        const commentsResponse = await axios.get(`/api/community/posts/${this.post.id}/comments/all/`);
         this.post.comments = commentsResponse.data;
       } catch (error) {
-        console.error("🚨 댓글 작성 실패:", error);
+        console.error("🚨 Failed to add comment:", error);
       }
     },
+    
+    /**
+     * Delete a comment
+     * @param {number} commentId - ID of the comment to delete
+     * Confirms with user before deletion and updates the UI on success
+     */
     async deleteComment(commentId) {
-      if (confirm("댓글을 삭제하시겠습니까?")) {
+      if (confirm("Are you sure you want to delete this comment?")) {
         try {
-          await axios.delete(`http://localhost:8000/api/community/comments/${commentId}/`);
+          await axios.delete(`/api/community/comments/${commentId}/`);
           this.post.comments = this.post.comments.filter(c => c.id !== commentId);
         } catch (error) {
-          console.error("🚨 댓글 삭제 실패:", error);
+          console.error("🚨 Failed to delete comment:", error);
         }
       }
     }
@@ -199,55 +255,66 @@ export default {
 </script>
 
 <style scoped>
+/* Main container styling with gradient background */
 .post-detail-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #f6f9fc 0%, #eef2f7 100%);
   padding: 40px 0;
 }
 
+/* Post detail card styling */
 .post-detail-card {
   border-radius: 12px;
   overflow: hidden;
 }
 
+/* Title section padding */
 .v-card-title {
   padding: 24px 16px;
 }
 
+/* Subtitle styling and color */
 .v-card-subtitle {
   padding: 0 16px 16px;
   color: #666;
 }
 
+/* Content section styling */
 .v-card-text {
   padding: 24px 16px;
   line-height: 1.8;
 }
 
+/* Comment item styling with bottom border */
 .comment-item {
   border-bottom: 1px solid #eee;
   padding: 16px 0;
 }
 
+/* Remove border from last comment */
 .comment-item:last-child {
   border-bottom: none;
 }
 
+/* Comment author name styling */
 .v-list-item-title {
   font-weight: 500;
   color: #333;
 }
 
+/* Comment content styling */
 .v-list-item-subtitle {
   color: #666;
   white-space: pre-wrap;
 }
 
+/* Button text styling */
 .v-btn {
   text-transform: none;
   letter-spacing: 0.5px;
 }
 
+/* Comment textarea styling */
 .v-textarea {
   background-color: #f8f9fa;
   border-radius: 4px;

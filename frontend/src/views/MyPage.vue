@@ -1,7 +1,9 @@
 <template>
+  <!-- User profile page container -->
   <v-container class="mypage">
     <v-row justify="center">
       <v-col cols="12" md="8">
+        <!-- Profile information card -->
         <v-card class="mx-auto" elevation="3">
           <v-card-title class="text-h4 font-weight-bold text-center py-6 primary white--text">
             My Page
@@ -9,25 +11,70 @@
 
           <v-card-text v-if="profile" class="pa-6">
             <v-row>
-              <!-- 프로필 이미지 섹션 -->
+              <!-- Profile image section -->
               <v-col cols="12" sm="4" class="text-center">
                 <v-avatar size="200" class="profile-avatar">
                   <v-img
-                    :src="profile.profile_image || `https://ui-avatars.com/api/?name=${profile.user.username}&background=random&size=200`"
-                    alt="프로필 이미지"
-                  />
+                    :src="getProfileImageUrl(profile.profile_image)"
+                    alt="Profile Image"
+                    @error="handleImageError"
+                  >
+                    <template v-slot:placeholder>
+                      <v-row class="fill-height ma-0" align="center" justify="center">
+                        <v-progress-circular indeterminate color="primary"></v-progress-circular>
+                      </v-row>
+                    </template>
+                  </v-img>
                 </v-avatar>
               </v-col>
 
-              <!-- 프로필 정보 섹션 -->
+              <!-- Profile information section -->
               <v-col cols="12" sm="8">
                 <div v-if="!isEditing">
                   <h2 class="text-h5 font-weight-bold mb-4">
                     {{ profile.nickname || profile.user.username }}
                   </h2>
                   <v-card outlined class="pa-4 mb-4 bio-card">
-                    <p class="text-body-1">{{ profile.bio || '소개글이 없습니다.' }}</p>
+                    <p class="text-body-1">{{ profile.bio || 'No introduction available.' }}</p>
                   </v-card>
+                  
+                  <!-- User Info Cards -->
+                  <v-row class="mb-4">
+                    <!-- Age Group Card -->
+                    <v-col cols="12" sm="6">
+                      <v-card outlined class="info-card" :class="{'info-card-empty': !profile.user.age_group}">
+                        <div class="d-flex align-center">
+                          <v-avatar color="primary" size="36" class="mr-3">
+                            <v-icon color="white">mdi-calendar-account</v-icon>
+                          </v-avatar>
+                          <div>
+                            <div class="caption grey--text text--darken-1">Age Group</div>
+                            <div class="subtitle-1 font-weight-medium">
+                              {{ getAgeGroupText(profile.user.age_group) || 'Not specified' }}
+                            </div>
+                          </div>
+                        </div>
+                      </v-card>
+                    </v-col>
+                    
+                    <!-- Gender Card -->
+                    <v-col cols="12" sm="6">
+                      <v-card outlined class="info-card" :class="{'info-card-empty': !profile.user.gender}">
+                        <div class="d-flex align-center">
+                          <v-avatar :color="profile.user.gender === 'M' ? 'blue' : profile.user.gender === 'F' ? 'pink' : 'grey'" size="36" class="mr-3">
+                            <v-icon color="white">{{ profile.user.gender === 'M' ? 'mdi-gender-male' : profile.user.gender === 'F' ? 'mdi-gender-female' : 'mdi-gender-non-binary' }}</v-icon>
+                          </v-avatar>
+                          <div>
+                            <div class="caption grey--text text--darken-1">Gender</div>
+                            <div class="subtitle-1 font-weight-medium">
+                              {{ getGenderText(profile.user.gender) || 'Not specified' }}
+                            </div>
+                          </div>
+                        </div>
+                      </v-card>
+                    </v-col>
+                  </v-row>
+                  
                   <v-btn
                     color="primary"
                     @click="startEditing"
@@ -45,7 +92,7 @@
                   </v-btn>
                 </div>
 
-                <!-- 수정 폼 -->
+                <!-- Profile edit form -->
                 <v-form v-else @submit.prevent="updateProfile">
                   <v-text-field
                     v-model="editForm.nickname"
@@ -63,6 +110,64 @@
                     rows="4"
                     class="mb-4"
                   />
+
+                  <!-- User Info Edit Section -->
+                  <v-card outlined class="mb-4 pa-4">
+                    <v-card-title class="text-subtitle-1 pa-0 pb-2">Personal Information</v-card-title>
+                    
+                    <!-- Age Group Selection -->
+                    <v-select
+                      v-model="editForm.age_group"
+                      label="Age Group"
+                      outlined
+                      dense
+                      :items="ageGroupOptions"
+                      item-title="text"
+                      item-value="value"
+                      prepend-icon="mdi-calendar-account"
+                      class="mb-4"
+                      return-object
+                    >
+                    </v-select>
+
+                    <!-- Gender Selection -->
+                    <v-radio-group
+                      v-model="editForm.gender"
+                      row
+                      class="mt-0"
+                    >
+                      <template v-slot:label>
+                        <div class="d-flex align-center">
+                          <v-icon class="mr-2">mdi-gender-male-female</v-icon>
+                          <span>Gender</span>
+                        </div>
+                      </template>
+                      <v-radio
+                        label="Male"
+                        value="M"
+                        color="blue"
+                      >
+                        <template v-slot:label>
+                          <div class="d-flex align-center">
+                            <v-icon color="blue" class="mr-1">mdi-gender-male</v-icon>
+                            <span>Male</span>
+                          </div>
+                        </template>
+                      </v-radio>
+                      <v-radio
+                        label="Female"
+                        value="F"
+                        color="pink"
+                      >
+                        <template v-slot:label>
+                          <div class="d-flex align-center">
+                            <v-icon color="pink" class="mr-1">mdi-gender-female</v-icon>
+                            <span>Female</span>
+                          </div>
+                        </template>
+                      </v-radio>
+                    </v-radio-group>
+                  </v-card>
 
                   <v-file-input
                     v-model="editForm.profile_image"
@@ -94,7 +199,7 @@
             </v-row>
           </v-card-text>
 
-          <!-- 로딩 상태 표시 -->
+          <!-- Loading state indicator -->
           <v-card-text v-else class="text-center pa-6">
             <v-progress-circular
               indeterminate
@@ -104,7 +209,7 @@
           </v-card-text>
         </v-card>
 
-        <!-- 좋아요 및 리뷰 탭 -->
+        <!-- Likes and reviews tabs -->
         <v-card class="mx-auto mt-6" elevation="3">
           <v-tabs v-model="activeTab" background-color="primary" dark>
             <v-tab value="likes">
@@ -119,14 +224,14 @@
 
           <v-card-text class="pa-0">
             <v-window v-model="activeTab">
-              <!-- 좋아요 탭 -->
+              <!-- Liked destinations tab content -->
               <v-window-item value="likes">
                 <div class="pa-4">
                   <user-likes />
                 </div>
               </v-window-item>
 
-              <!-- 리뷰 탭 -->
+              <!-- User reviews tab content -->
               <v-window-item value="reviews">
                 <div class="pa-4">
                   <user-reviews />
@@ -136,7 +241,7 @@
           </v-card-text>
         </v-card>
 
-        <!-- 계정 삭제 다이얼로그 -->
+        <!-- Account deletion confirmation dialog -->
         <v-dialog v-model="deleteAccountDialog" max-width="500">
           <v-card>
             <v-card-title class="text-h5 error white--text">
@@ -177,6 +282,15 @@ import axios from 'axios'
 import UserLikes from '@/components/UserLikes.vue'
 import UserReviews from '@/components/UserReviews.vue'
 
+/**
+ * My Page Component
+ * User profile management interface with profile editing capabilities
+ * Features:
+ * - Profile information display and editing
+ * - Profile image upload
+ * - Account deletion
+ * - Tabs for liked destinations and user reviews
+ */
 export default {
   name: 'MyPage',
   components: {
@@ -185,47 +299,155 @@ export default {
   },
   data() {
     return {
-      profile: null,
-      isEditing: false,
-      activeTab: 'likes',
+      profile: null, // User profile data
+      isEditing: false, // Profile editing mode
+      activeTab: 'likes', // Active tab selection
       editForm: {
-        nickname: '',
-        bio: '',
-        profile_image: null
+        nickname: '', // Nickname editing field
+        bio: '', // Bio editing field
+        age_group: '', // Age group field
+        gender: '', // Gender field
+        profile_image: null // Profile image upload field
       },
-      deleteAccountDialog: false,
-      deleteAccountPassword: '',
-      deleteAccountError: '',
-      isDeleting: false
+      // Age Group Selection Options - using simple strings as values
+      ageGroupOptions: [
+        { text: "Under 18", value: "under18" },
+        { text: "18-24", value: "18to24" },
+        { text: "25-34", value: "25to34" },
+        { text: "35-44", value: "35to44" },
+        { text: "45-54", value: "45to54" },
+        { text: "55-64", value: "55to64" },
+        { text: "65 and Above", value: "65plus" }
+      ],
+      deleteAccountDialog: false, // Account deletion dialog visibility
+      deleteAccountPassword: '', // Password confirmation for account deletion
+      deleteAccountError: '', // Error message for account deletion
+      isDeleting: false // Account deletion loading state
     }
   },
   methods: {
+    /**
+     * Get readable text for age group value
+     */
+    getAgeGroupText(ageGroupValue) {
+      if (!ageGroupValue) return null;
+      const found = this.ageGroupOptions.find(opt => opt.value === ageGroupValue);
+      return found ? found.text : ageGroupValue;
+    },
+    
+    /**
+     * Get readable text for gender value
+     */
+    getGenderText(genderValue) {
+      if (!genderValue) return null;
+      return genderValue === 'M' ? 'Male' : genderValue === 'F' ? 'Female' : genderValue;
+    },
+    
+    /**
+     * Get proper URL for profile image
+     * @param {String} imagePath - The image path from the API
+     */
+    getProfileImageUrl(imagePath) {
+      if (!imagePath) {
+        const defaultAvatar = `https://ui-avatars.com/api/?name=${this.profile.user.username}&background=random&size=200`;
+        console.log('Using default avatar:', defaultAvatar);
+        return defaultAvatar;
+      }
+      
+      // Check if the image path starts with http or https
+      if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+        console.log('Using absolute image URL:', imagePath);
+        return imagePath;
+      }
+      
+      // Handle case where image is stored in the old directory structure
+      // This is a temporary fix - eventually all images should be in the media directory
+      const baseUrl = process.env.VUE_APP_API_URL || 'http://localhost:8000';
+      let normalizedPath = '';
+      
+      // Check if the path already includes /media/
+      if (imagePath.includes('/media/')) {
+        normalizedPath = imagePath;
+      } else if (imagePath.startsWith('/')) {
+        // Prepend /media if needed
+        normalizedPath = `/media${imagePath}`;
+      } else {
+        // Handle paths like profile_images/image.jpg
+        normalizedPath = `/media/${imagePath}`;
+      }
+      
+      const fullUrl = `${baseUrl}${normalizedPath}`;
+      console.log('Constructed image URL:', fullUrl);
+      return fullUrl;
+    },
+    
+    /**
+     * Fetch user profile data from API
+     * Loads the current user's profile information
+     */
     async fetchProfile() {
       try {
         const response = await axios.get('/api/mypage/profile/')
         this.profile = response.data
+        console.log('Fetched profile data:', JSON.stringify(this.profile))
+        console.log('Profile image path:', this.profile.profile_image)
       } catch (error) {
-        console.error('프로필 로딩 실패:', error)
+        console.error('Failed to load profile:', error)
       }
     },
+    
+    /**
+     * Begin profile editing mode
+     * Populates the edit form with current profile data
+     */
     startEditing() {
+      // Find the age group option that matches the user's value
+      const ageOption = this.ageGroupOptions.find(option => 
+        option.value === this.profile.user.age_group
+      ) || '';
+      
       this.editForm = {
         nickname: this.profile.nickname,
-        bio: this.profile.bio
+        bio: this.profile.bio,
+        age_group: ageOption,
+        gender: this.profile.user.gender || ''
       }
+      
       this.isEditing = true
     },
+    
+    /**
+     * Cancel profile editing mode
+     * Reverts to display mode without saving changes
+     */
     cancelEditing() {
       this.isEditing = false
     },
+    
+    /**
+     * Handle profile image file selection
+     * @param {Event} event - Input change event with selected file
+     */
     handleImageChange(event) {
       this.editForm.profile_image = event.target.files[0]
     },
+    
+    /**
+     * Update profile information
+     * Saves changes to nickname, bio, and profile image
+     */
     async updateProfile() {
       try {
+        // Extract age group value from the object
+        const ageGroupValue = this.editForm.age_group && this.editForm.age_group.value ? 
+          this.editForm.age_group.value : '';
+        
         const formData = new FormData()
         formData.append('nickname', this.editForm.nickname)
         formData.append('bio', this.editForm.bio)
+        formData.append('age_group', ageGroupValue)
+        formData.append('gender', this.editForm.gender)
+        
         if (this.editForm.profile_image) {
           formData.append('profile_image', this.editForm.profile_image)
         }
@@ -239,18 +461,27 @@ export default {
         await this.fetchProfile()
         this.isEditing = false
       } catch (error) {
-        console.error('프로필 업데이트 실패:', error)
+        console.error('Failed to update profile:', error)
       }
     },
+    
+    /**
+     * Show account deletion confirmation dialog
+     * Resets error messages and password field
+     */
     showDeleteAccountDialog() {
       this.deleteAccountDialog = true
       this.deleteAccountPassword = ''
       this.deleteAccountError = ''
     },
     
+    /**
+     * Delete user account
+     * Requires password confirmation for security
+     */
     async deleteAccount() {
       if (!this.deleteAccountPassword) {
-        this.deleteAccountError = '비밀번호를 입력해주세요.'
+        this.deleteAccountError = 'Please enter your password.'
         return
       }
       
@@ -263,31 +494,44 @@ export default {
           }
         })
         
-        // 로그아웃 처리
+        // Clear authentication data
         localStorage.removeItem('access_token')
         localStorage.removeItem('refresh_token')
         
-        // 인증 헤더 제거
+        // Remove auth header
         delete axios.defaults.headers.common['Authorization']
         
-        // 인증 상태 변경 이벤트 발생
+        // Trigger auth state change event
         document.dispatchEvent(new Event('auth-changed'))
         
-        // 알림 메시지 (Vuex 스토어가 없으므로 alert 사용)
-        alert('계정이 성공적으로 삭제되었습니다.')
+        // Show confirmation message
+        alert('Your account has been successfully deleted.')
         
-        // 페이지 새로고침 후 홈페이지로 이동
+        // Reload page and redirect to home
         window.location.href = '/'
       } catch (error) {
-        console.error('계정 삭제 실패:', error)
+        console.error('Failed to delete account:', error)
         
         if (error.response && error.response.data && error.response.data.error) {
           this.deleteAccountError = error.response.data.error
         } else {
-          this.deleteAccountError = '계정 삭제 중 오류가 발생했습니다.'
+          this.deleteAccountError = 'An error occurred while deleting your account.'
         }
       } finally {
         this.isDeleting = false
+      }
+    },
+    
+    /**
+     * Handle image loading error
+     */
+    handleImageError() {
+      console.error('Failed to load profile image:', this.profile.profile_image);
+      // If image fails to load, try a fallback
+      if (this.profile.profile_image) {
+        // Mark the current path as invalid
+        console.log('Trying with fallback image path');
+        // We could implement additional fallback logic here if needed
       }
     }
   },
@@ -298,31 +542,54 @@ export default {
 </script>
 
 <style scoped>
+/* Main container styling */
 .mypage {
   padding-top: 40px;
   padding-bottom: 40px;
 }
 
+/* Profile avatar styling with border and shadow */
 .profile-avatar {
   border: 4px solid #1976d2;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
+/* Bio card background styling */
 .bio-card {
   background-color: #f5f5f5;
   min-height: 100px;
 }
 
+/* User info cards styling */
+.info-card {
+  padding: 16px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  border: 1px solid #e0e0e0;
+}
+
+.info-card:hover {
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.info-card-empty {
+  background-color: #f5f5f5;
+  border: 1px dashed #bdbdbd;
+}
+
+/* Card styling with rounded corners */
 .v-card {
   border-radius: 16px;
 }
 
+/* Card title styling */
 .v-card-title {
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;
 }
 
-/* 반응형 디자인을 위한 미디어 쿼리 */
+/* Responsive design for mobile devices */
 @media (max-width: 600px) {
   .profile-avatar {
     margin-bottom: 20px;

@@ -5,17 +5,35 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 class LocationSerializer(serializers.ModelSerializer):
+    """
+    Location serializer.
+    
+    Serializes the basic location model including all fields.
+    Used for displaying location information in lists and search results.
+    """
     class Meta:
         model = Location
-        fields = '__all__'  # 🔹 모든 필드 포함 (likes_count 포함)
+        fields = '__all__'  # 🔹 Include all fields (including likes_count)
 
 class UserSerializer(serializers.ModelSerializer):
+    """
+    User serializer for public information.
+    
+    Provides a limited view of user data for security purposes.
+    Only includes essential fields that are safe to expose.
+    """
     class Meta:
         model = User
         fields = ['id', 'username', 'email']
         read_only_fields = ['id', 'username', 'email']
 
 class LikeSerializer(serializers.ModelSerializer):
+    """
+    Like serializer.
+    
+    Handles the relationship between users and locations they have liked.
+    Includes nested user and location data for detailed views.
+    """
     user = UserSerializer(read_only=True)
     location = LocationSerializer(read_only=True)
     location_id = serializers.PrimaryKeyRelatedField(
@@ -30,11 +48,27 @@ class LikeSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'user', 'created_at']
     
     def create(self, validated_data):
-        # 현재 요청한 사용자를 like.user로 설정
+        """
+        Create a like with the current user.
+        
+        Parameters:
+            validated_data: Validated data dictionary
+            
+        Returns:
+            Newly created Like instance
+        """
+        # Set the current requesting user as like.user
         validated_data['user'] = self.context['request'].user
         return super().create(validated_data)
 
 class ReviewSerializer(serializers.ModelSerializer):
+    """
+    Review serializer.
+    
+    Handles user reviews for locations, including ratings and content.
+    Includes sentiment analysis and provides related location and user information.
+    Prevents users from submitting multiple reviews for the same location.
+    """
     location_id = serializers.IntegerField(write_only=True)
     location_name = serializers.SerializerMethodField()
     username = serializers.SerializerMethodField()
@@ -45,25 +79,58 @@ class ReviewSerializer(serializers.ModelSerializer):
         read_only_fields = ['user', 'location', 'sentiment', 'created_at', 'updated_at']
     
     def get_location_name(self, obj):
+        """
+        Get the name of the location associated with this review.
+        
+        Parameters:
+            obj: Review instance
+            
+        Returns:
+            str: Location name or None if location doesn't exist
+        """
         return obj.location.name if obj.location else None
     
     def get_username(self, obj):
+        """
+        Get the username of the review author.
+        
+        Parameters:
+            obj: Review instance
+            
+        Returns:
+            str: Author username or None if user doesn't exist
+        """
         return obj.user.username if obj.user else None
     
     def create(self, validated_data):
-        print("ReviewSerializer.create 호출됨:", validated_data)
+        """
+        Create a new review.
+        
+        Handles attaching the current user to the review, validating the location,
+        and preventing duplicate reviews for the same location by a user.
+        
+        Parameters:
+            validated_data: Validated data dictionary
+            
+        Returns:
+            Newly created Review instance
+            
+        Raises:
+            ValidationError: If location doesn't exist or user already reviewed this location
+        """
+        print("ReviewSerializer.create called:", validated_data)
         location_id = validated_data.pop('location_id')
         user = self.context['request'].user
         
         try:
             location = Location.objects.get(id=location_id)
         except Location.DoesNotExist:
-            raise serializers.ValidationError({"location_id": "존재하지 않는 여행지입니다."})
+            raise serializers.ValidationError({"location_id": "Location does not exist."})
         
-        # 이미 리뷰가 있는지 확인
+        # Check if review already exists
         existing_review = Review.objects.filter(user=user, location=location).first()
         if existing_review:
-            raise serializers.ValidationError({"error": "이미 이 여행지에 대한 리뷰를 작성했습니다."})
+            raise serializers.ValidationError({"error": "You have already written a review for this location."})
         
         review = Review.objects.create(
             user=user,
@@ -73,14 +140,29 @@ class ReviewSerializer(serializers.ModelSerializer):
         return review
     
     def update(self, instance, validated_data):
-        print("ReviewSerializer.update 호출됨:", validated_data)
+        """
+        Update an existing review.
+        
+        Allows updating of review content, rating, and optionally the location.
+        
+        Parameters:
+            instance: Existing Review instance to update
+            validated_data: Validated data dictionary with new values
+            
+        Returns:
+            Updated Review instance
+            
+        Raises:
+            ValidationError: If specified location doesn't exist
+        """
+        print("ReviewSerializer.update called:", validated_data)
         if 'location_id' in validated_data:
             location_id = validated_data.pop('location_id')
             try:
                 location = Location.objects.get(id=location_id)
                 instance.location = location
             except Location.DoesNotExist:
-                raise serializers.ValidationError({"location_id": "존재하지 않는 여행지입니다."})
+                raise serializers.ValidationError({"location_id": "Location does not exist."})
         
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -89,7 +171,13 @@ class ReviewSerializer(serializers.ModelSerializer):
         return instance
 
 class LocationDetailSerializer(LocationSerializer):
-    """여행지 상세 정보와 함께 좋아요 및 리뷰 정보를 포함하는 시리얼라이저"""
+    """
+    Detailed location serializer.
+    
+    Extends the base LocationSerializer to include comprehensive information about a location,
+    including review statistics, user interaction status (likes/reviews), and recent reviews.
+    Used for single location detail views where more information is required than in list views.
+    """
     reviews_count = serializers.SerializerMethodField()
     average_rating = serializers.SerializerMethodField()
     user_has_liked = serializers.SerializerMethodField()
@@ -101,21 +189,57 @@ class LocationDetailSerializer(LocationSerializer):
         fields = '__all__'
     
     def get_reviews_count(self, obj):
+        """
+        Get the total number of reviews for this location.
+        
+        Parameters:
+            obj: Location instance
+            
+        Returns:
+            int: Total number of reviews
+        """
         return obj.reviews.count()
     
     def get_average_rating(self, obj):
+        """
+        Calculate the average rating from all reviews.
+        
+        Parameters:
+            obj: Location instance
+            
+        Returns:
+            float: Average rating or None if no reviews
+        """
         reviews = obj.reviews.all()
         if not reviews:
             return None
         return sum(review.rating for review in reviews) / reviews.count()
     
     def get_user_has_liked(self, obj):
+        """
+        Check if the current user has liked this location.
+        
+        Parameters:
+            obj: Location instance
+            
+        Returns:
+            bool: True if user has liked, False otherwise
+        """
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             return obj.likes.filter(user=request.user).exists()
         return False
     
     def get_user_review(self, obj):
+        """
+        Get the current user's review for this location.
+        
+        Parameters:
+            obj: Location instance
+            
+        Returns:
+            dict: Serialized review data or None if user hasn't reviewed
+        """
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             try:
@@ -126,6 +250,15 @@ class LocationDetailSerializer(LocationSerializer):
         return None
     
     def get_recent_reviews(self, obj):
-        # 최근 리뷰 5개만 반환
+        """
+        Get the 5 most recent reviews for this location.
+        
+        Parameters:
+            obj: Location instance
+            
+        Returns:
+            list: List of serialized review data
+        """
+        # Return only the 5 most recent reviews
         reviews = obj.reviews.all()[:5]
         return ReviewSerializer(reviews, many=True).data
